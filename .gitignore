@@ -1,0 +1,15 @@
+node_modules/
+dist/
+.vite/
+.wrangler/
+*.local
+.env
+.env.*
+.DS_Store
+Thumbs.db
+
+# 에셋 원본(생성물 원본은 리포에 넣지 않는다 — 후처리 완료본만 public/art 로)
+assets-raw/
+
+# 원본 스냅샷 (claude.ai 웹에서 만든 프로토타입) — 디스크에는 남기되 리포에는 넣지 않는다
+claude_web/
