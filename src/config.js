@@ -16,31 +16,38 @@ export const INPUT_KEY = {
 };
 
 export const CFG = {
-  view: { w: 960, h: 540, groundY: 420, playerScreenX: 640 },
+  view: { w: 960, h: 540, groundY: 420, playerScreenX: 480 },
 
   // 사슴+기수. speedBack < tiger.chaseSpeed 여야 A키로 뒤로 붙을 수 있다.
   player: {
     w: 70, h: 96, crouchH: 52,
     speedBase: 250, speedFwd: 340, speedBack: 120,
-    aimMul: 0.55, crouchMul: 0.72, stumbleMul: 0.35, stumbleTime: 0.6,
+    aimMul: 0.55, crouchMul: 0.72, // crouchMul은 현재 사용 안 함
+    stumbleMul: 0.35, stumbleTime: 0.6,
     jumpV: 660, gravity: 1900,
     airClearY: 58,          // 이 높이 위면 하단 후려치기를 넘긴다
     hp: 3, invuln: 1.2
   },
 
-  // 호랑이. chase(추격) ↔ engage(정지 후 교전) 두 국면.
+  // 호랑이. 뒤에서 추격한 뒤 추월해 앞을 막고 교전한다.
   tiger: {
     w: 120, h: 74,
     chaseSpeed: 245, chaseSpeedPerWave: 14,
+    overtakeSpeed: 430,
+    blockSpeed: 250,
     hp: 110, hpPerWave: 60,
     gapStart: 380, gapMax: 620,
     engageGap: 175,         // 이보다 가까우면 멈춰서 공격
     disengageGap: 255,      // 이보다 멀어지면 다시 추격
+    blockGap: 210,
+    bodyGap: 95,
+    turnTime: 0.35,
     windup: 0.50,           // 빨간 예고 시간
     swing: 0.16,            // 판정 프레임
     recover: 0.75,          // 빈틈 (피해 배율 적용 구간)
     cooldown: 0.40,
     reach: 195,
+    overtakeDmgMul: 1.5,
     recoverDmgMul: 2.0,
     clawKnockback: 130
   },
@@ -66,7 +73,7 @@ export const CFG = {
     kill:      [0.18, 0.70, 0],
     stumble:   [0.03, 0.22, 0],
     claw:      [0.12, 0.60, 0],
-    traumaDecay: 2.6, shakeMax: 16
+    traumaDecay: 2.6, shakeMax: 24
   }
 };
 

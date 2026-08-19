@@ -3,7 +3,7 @@
 // 핵심 : updatePlayer()
 // 의존 : config
 // 연관 : tiger(발톱 판정이 이 상태를 읽음), obstacle(충돌)
-// 주의 : A/D가 곧 gap 조절이다. 속도 배율(조준·수그림·비틀거림)은 곱연산으로 누적된다.
+// 주의 : A/D가 곧 gap 조절이다. 속도 배율(조준·비틀거림)은 곱연산으로 누적된다.
 
 import { CFG, FIXED_DT, INPUT_KEY } from './config.js';
 
@@ -31,7 +31,6 @@ export function updatePlayer(S, input) {
 
   let mul = 1;
   if (S.aiming) mul *= K.aimMul;
-  if (p.crouch) mul *= K.crouchMul;
   if (p.stumble > 0) mul *= K.stumbleMul;
 
   p.speed = base * mul;

@@ -1,24 +1,27 @@
 // CODEMAP
-// role : 호랑이 상태머신 — 추격 / 정지 후 앞발 후려치기
+// role : 호랑이 상태머신 — 추격 / 추월 / 앞을 막고 뒤돈 뒤 앞발 후려치기
 // 핵심 : updateTiger(), damageTiger()
 // 의존 : config, state(gapOf), player(존 판정)
 // 연관 : arrow(피해 적용), render(텔레그래프 표시)
 // 주의 : windup 진입 시점의 플레이어 자세를 '거울처럼' 노린다.
 //        서 있으면 상단, 수그려 있으면 하단 → 0.5초 안에 자세를 바꿔야 피한다.
-//        recover 구간에만 피해 배율이 붙는다. 붙는 이유가 여기 있다.
+//        overtake와 recover 구간에 피해 배율이 붙는다. 붙는 이유가 여기 있다.
 
 import { CFG, FIXED_DT } from './config.js';
 import { gapOf, newTiger } from './state.js';
 import { inHighZone, inLowZone } from './player.js';
 
 export function tigerVulnerable(S) {
-  return S.tiger.state === 'recover';
+  return S.tiger.state === 'overtake' || S.tiger.state === 'recover';
 }
 
 export function damageTiger(S, dmg, push, strong) {
   const T = S.tiger;
-  T.hp -= dmg * (tigerVulnerable(S) ? CFG.tiger.recoverDmgMul : 1);
-  T.x -= push;
+  const dmgMul = T.state === 'recover' ? CFG.tiger.recoverDmgMul :
+    T.state === 'overtake' ? CFG.tiger.overtakeDmgMul : 1;
+  T.hp -= dmg * dmgMul;
+  S.flash.tigerUntil = S.frame + 2;
+  T.x += gapOf(S) < 0 ? push : -push;
   S.events.push({ kind: strong ? 'hitStrong' : 'hitWeak' });
 
   if (T.hp <= 0) {
@@ -33,24 +36,50 @@ function clawHit(S) {
   const p = S.player;
   if (p.invuln > 0) return;
   p.hp--; p.invuln = CFG.player.invuln;
-  S.tiger.x = S.worldX - CFG.tiger.clawKnockback;
+  S.flash.playerUntil = S.frame + 2;
+  S.worldX -= CFG.tiger.clawKnockback;
   S.events.push({ kind: 'claw' });
   if (p.hp <= 0) S.phase = 'over';
 }
 
+function startWindup(S) {
+  const T = S.tiger;
+  T.state = 'windup'; T.timer = CFG.tiger.windup; T.swung = false;
+  T.zone = inHighZone(S) ? 'high' : 'low';   // 진입 시점의 지금 자세를 노린다
+}
+
+function blockPlayerBody(S) {
+  const T = S.tiger;
+  if (T.state === 'chase' || T.state === 'overtake') return;
+  const gap = gapOf(S);
+  if (gap >= 0 || Math.abs(gap) >= CFG.tiger.bodyGap) return;
+  S.worldX = T.x - CFG.tiger.bodyGap;
+  S.player.stumble = CFG.player.stumbleTime;
+  S.events.push({ kind: 'stumble' });
+}
+
 export function updateTiger(S) {
   const T = S.tiger, K = CFG.tiger;
-  const gap = gapOf(S);
 
   if (T.state === 'chase') {
     T.x += T.chaseSpeed * FIXED_DT;
-    if (gap <= K.engageGap) {
-      T.state = 'windup'; T.timer = K.windup; T.swung = false;
-      T.zone = inHighZone(S) ? 'high' : 'low';   // 지금 자세를 노린다
+    const gap = gapOf(S);
+    if (gap >= 0 && gap <= K.engageGap) {
+      T.state = 'overtake';
     }
+  } else if (T.state === 'overtake') {
+    T.x += K.overtakeSpeed * FIXED_DT;
+    if (gapOf(S) <= -K.blockGap) {
+      T.state = 'brace'; T.timer = K.turnTime;
+    }
+  } else if (T.state === 'brace') {
+    const turn = Math.max(0, T.timer / K.turnTime);
+    T.x += (K.blockSpeed + (K.overtakeSpeed - K.blockSpeed) * turn) * FIXED_DT;
+    T.timer -= FIXED_DT;
+    if (T.timer <= 0) startWindup(S);
   } else {
-    // 교전 중에는 더 이상 좁혀오지 않는다. 거리는 플레이어가 A/D로 만든다.
-    T.x += CFG.player.speedBase * FIXED_DT;
+    // 앞을 막은 뒤에는 플레이어와 무관한 정속으로 달린다.
+    T.x += K.blockSpeed * FIXED_DT;
     T.timer -= FIXED_DT;
 
     if (T.state === 'windup' && T.timer <= 0) {
@@ -58,7 +87,7 @@ export function updateTiger(S) {
     } else if (T.state === 'swing') {
       if (!T.swung) {
         T.swung = true;
-        const reached = gapOf(S) <= K.reach;
+        const reached = Math.abs(gapOf(S)) <= K.reach;
         const exposed = T.zone === 'high' ? inHighZone(S) : inLowZone(S);
         if (reached && exposed) clawHit(S);
       }
@@ -66,16 +95,14 @@ export function updateTiger(S) {
     } else if (T.state === 'recover' && T.timer <= 0) {
       T.state = 'cooldown'; T.timer = K.cooldown;
     } else if (T.state === 'cooldown' && T.timer <= 0) {
-      if (gapOf(S) > K.disengageGap) {
+      if (Math.abs(gapOf(S)) > K.disengageGap) {
         T.state = 'chase';
       } else {
-        T.state = 'windup'; T.timer = K.windup; T.swung = false;
-        T.zone = inHighZone(S) ? 'high' : 'low';
+        startWindup(S);
       }
     }
-
-    if (gapOf(S) > K.disengageGap && T.state !== 'swing') T.state = 'chase';
   }
 
+  blockPlayerBody(S);
   T.x = Math.max(T.x, S.worldX - K.gapMax);
 }

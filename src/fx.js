@@ -19,6 +19,6 @@ export function decayFx(S, dt) {
 }
 
 export function shakeOf(S) {
-  const m = S.trauma * S.trauma * CFG.fx.shakeMax;
+  const m = S.trauma ** 1.2 * CFG.fx.shakeMax;
   return { x: (Math.random() * 2 - 1) * m, y: (Math.random() * 2 - 1) * m };
 }

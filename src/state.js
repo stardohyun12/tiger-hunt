@@ -14,7 +14,7 @@ export function newTiger(wave) {
     hpMax: hp, hp,
     x: 0,
     chaseSpeed: CFG.tiger.chaseSpeed + CFG.tiger.chaseSpeedPerWave * wave,
-    state: 'chase',   // chase | windup | swing | recover | cooldown
+    state: 'chase',   // chase | overtake | brace | windup | swing | recover | cooldown
     timer: 0,
     zone: 'high',     // high | low  — 이번 스윙이 노리는 높이
     swung: false
@@ -41,6 +41,7 @@ export function createState(seed) {
     arrows: [], obstacles: [], nextObsX: 1000,
 
     hitstop: 0, trauma: 0,
+    flash: { tigerUntil: 0, playerUntil: 0 },
     events: [],
     replay: { seed: normalizedSeed, frames: 0, inputs: [] }
   };
