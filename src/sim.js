@@ -11,6 +11,13 @@ import { updateTiger } from './tiger.js';
 import { fireArrow, startCharge, updateArrows } from './arrow.js';
 import { updateObstacles } from './obstacle.js';
 
+function updateDistanceScore(S) {
+  const points = Math.floor(S.worldX / CFG.score.distancePx);
+  if (points <= S.scoredDistance) return;
+  S.score += points - S.scoredDistance;
+  S.scoredDistance = points;
+}
+
 export function updateSimulation(S, input) {
   S.events = [];
   S.aimX = input.ax;
@@ -28,6 +35,7 @@ export function updateSimulation(S, input) {
   S.t += FIXED_DT;
   if (S.aiming) S.charge = Math.min(S.charge + FIXED_DT, CFG.aim.chargeTime);
   updatePlayer(S, input);
+  updateDistanceScore(S);
   updateObstacles(S);
   updateTiger(S);
   updateArrows(S);

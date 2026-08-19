@@ -16,6 +16,7 @@ import { render } from './render.js';
 
 const canvas = document.getElementById('cv');
 const ctx = initViewport(canvas);
+const BEST_SCORE_KEY = 'tiger-chase-best-score-v1';
 
 function dailySeed() {
   const date = new Date();
@@ -25,10 +26,35 @@ function dailySeed() {
 const seed = dailySeed();
 let S = createState(seed);
 
+function loadBestScore() {
+  try {
+    const value = Number(localStorage.getItem(BEST_SCORE_KEY));
+    return Number.isFinite(value) ? Math.max(0, Math.floor(value)) : 0;
+  } catch {
+    return 0;
+  }
+}
+
+function saveBestScore(score) {
+  try {
+    localStorage.setItem(BEST_SCORE_KEY, String(score));
+  } catch {
+    // 저장소가 차단된 환경에서도 게임 진행은 유지한다.
+  }
+}
+
+S.bestScore = loadBestScore();
+
+function resetState(phase) {
+  const bestScore = S.bestScore;
+  S = createState(seed);
+  S.bestScore = bestScore;
+  S.phase = phase;
+}
+
 function restartIfNeeded() {
   if (S.phase === 'play') return false;
-  S = createState(seed);
-  S.phase = 'play';
+  resetState('play');
   return true;
 }
 
@@ -38,12 +64,31 @@ bindInput(canvas, {
   onPrimaryDown: () => restartIfNeeded()
 });
 
-function update() {
+function applyPresentationFx(advanced) {
+  for (const event of S.events) triggerFx(S, CFG.fx[event.kind]);
+  decayFx(S, FIXED_DT * (advanced ? 1 : 0.4));
+}
+
+function finishRun() {
+  S.isNewBest = S.score > S.bestScore;
+  if (!S.isNewBest) return;
+  S.bestScore = S.score;
+  saveBestScore(S.bestScore);
+}
+
+function updatePlay() {
   const input = sampleInput(S.frame);
   record(S, input);
   const advanced = updateSimulation(S, input);
-  for (const event of S.events) triggerFx(S, CFG.fx[event.kind]);
-  decayFx(S, FIXED_DT * (advanced ? 1 : 0.4));
+  applyPresentationFx(advanced);
+  if (S.phase === 'over') finishRun();
+}
+
+function updateTitleDemo() {
+  const input = { f: S.frame, k: 0, ax: 0, ay: 0, c: 0 };
+  const advanced = updateSimulation(S, input);
+  applyPresentationFx(advanced);
+  if (S.phase === 'over') resetState('title');
 }
 
 let last = performance.now();
@@ -53,7 +98,8 @@ function frame(now) {
   last = now;
   accumulator = Math.min(accumulator + elapsed, FIXED_DT * FIXED_STEPS_MAX);
   while (accumulator >= FIXED_DT) {
-    if (S.phase === 'play') update();
+    if (S.phase === 'play') updatePlay();
+    else if (S.phase === 'title') updateTitleDemo();
     accumulator -= FIXED_DT;
   }
   render(ctx, S);

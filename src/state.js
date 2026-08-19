@@ -30,6 +30,7 @@ export function createState(seed) {
     frame: 0,
     phase: 'title',            // title | play | over
     t: 0, worldX: 0, wave: 0, kills: 0,
+    score: 0, scoredDistance: 0,
 
     player: {
       y: 0, vy: 0, grounded: true, crouch: false,
@@ -43,6 +44,7 @@ export function createState(seed) {
     hitstop: 0, trauma: 0,
     flash: { tigerUntil: 0, playerUntil: 0 },
     events: [],
+    bestScore: 0, isNewBest: false,
     replay: { seed: normalizedSeed, frames: 0, inputs: [] }
   };
   t.x = -CFG.tiger.gapStart;

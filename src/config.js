@@ -35,6 +35,8 @@ export const CFG = {
     chaseSpeed: 245, chaseSpeedPerWave: 14,
     overtakeSpeed: 430,
     blockSpeed: 250,
+    approachSpeed: 115,
+    aheadChaseMul: 0.7,
     hp: 110, hpPerWave: 60,
     gapStart: 380, gapMax: 620,
     engageGap: 175,         // 이보다 가까우면 멈춰서 공격
@@ -57,7 +59,16 @@ export const CFG = {
     powerMin: 620, powerMax: 1180,
     dmgMin: 9, dmgMax: 32,
     pushMin: 20, pushMax: 150,
-    gravity: 820, life: 2.4
+    gravity: 820, life: 2.4,
+    strongCharge: 0.6
+  },
+
+  score: {
+    distancePx: 10,
+    meterPx: 50,
+    hit: 25,
+    strongHit: 60,
+    kill: 500
   },
 
   obs: {
@@ -78,6 +89,7 @@ export const CFG = {
 };
 
 export const C = {
+  paper:'#E8DCC0', ink:'#2B2320', ochre:'#C8862A', vermilion:'#B03A2E',
   bg:'#12101a', sky:'#1b1726', ground:'#2b2434', groundLine:'#3d3350',
   player:'#e9dcc4', rider:'#f4f2ec',
   tiger:'#e0742f', tigerDark:'#a44d18', tigerVuln:'#ffd166',

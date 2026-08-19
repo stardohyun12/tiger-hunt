@@ -20,12 +20,14 @@ export function damageTiger(S, dmg, push, strong) {
   const dmgMul = T.state === 'recover' ? CFG.tiger.recoverDmgMul :
     T.state === 'overtake' ? CFG.tiger.overtakeDmgMul : 1;
   T.hp -= dmg * dmgMul;
+  S.score += strong ? CFG.score.strongHit : CFG.score.hit;
   S.flash.tigerUntil = S.frame + 2;
   T.x += gapOf(S) < 0 ? push : -push;
   S.events.push({ kind: strong ? 'hitStrong' : 'hitWeak' });
 
   if (T.hp <= 0) {
     S.events.push({ kind: 'kill' });
+    S.score += CFG.score.kill;
     S.kills++; S.wave++;
     S.tiger = newTiger(S.wave);
     S.tiger.x = S.worldX - CFG.tiger.gapStart;
@@ -62,7 +64,8 @@ export function updateTiger(S) {
   const T = S.tiger, K = CFG.tiger;
 
   if (T.state === 'chase') {
-    T.x += T.chaseSpeed * FIXED_DT;
+    const chaseSpeed = gapOf(S) < 0 ? K.blockSpeed * K.aheadChaseMul : T.chaseSpeed;
+    T.x += chaseSpeed * FIXED_DT;
     const gap = gapOf(S);
     if (gap >= 0 && gap <= K.engageGap) {
       T.state = 'overtake';
@@ -78,8 +81,9 @@ export function updateTiger(S) {
     T.timer -= FIXED_DT;
     if (T.timer <= 0) startWindup(S);
   } else {
-    // 앞을 막은 뒤에는 플레이어와 무관한 정속으로 달린다.
-    T.x += K.blockSpeed * FIXED_DT;
+    // windup 동안에는 현재 gap 방향으로 다가가되, A의 후퇴 속도보다 느리게 접근한다.
+    const approach = T.state === 'windup' ? Math.sign(gapOf(S)) * K.approachSpeed : 0;
+    T.x += (K.blockSpeed + approach) * FIXED_DT;
     T.timer -= FIXED_DT;
 
     if (T.state === 'windup' && T.timer <= 0) {
@@ -105,4 +109,5 @@ export function updateTiger(S) {
 
   blockPlayerBody(S);
   T.x = Math.max(T.x, S.worldX - K.gapMax);
+  T.x = Math.min(T.x, S.worldX + K.gapMax);   // 앞쪽도 대칭 클램프 — 후퇴 홀드 시 이탈 방지
 }

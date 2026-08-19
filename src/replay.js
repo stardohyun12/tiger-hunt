@@ -46,9 +46,10 @@ export function playback(replay) {
 }
 
 export function hashState(S) {
-  // presentation 전용 trauma, 한 프레임짜리 events, 기록 metadata인 replay는 gameplay 해시에서 제외한다.
+  // presentation/기기 전용 값, 한 프레임짜리 events, 기록 metadata는 gameplay 해시에서 제외한다.
   const json = JSON.stringify(S, (key, value) =>
-    key === 'trauma' || key === 'events' || key === 'replay' ? undefined : value);
+    key === 'trauma' || key === 'events' || key === 'replay' ||
+    key === 'bestScore' || key === 'isNewBest' ? undefined : value);
   let hash = 0x811c9dc5;
   for (let i = 0; i < json.length; i++) {
     hash ^= json.charCodeAt(i);

@@ -53,7 +53,7 @@ export function updateArrows(S) {
       damageTiger(S,
         CFG.aim.dmgMin + (CFG.aim.dmgMax - CFG.aim.dmgMin) * k,
         CFG.aim.pushMin + (CFG.aim.pushMax - CFG.aim.pushMin) * k,
-        k > 0.6);
+        k > CFG.aim.strongCharge);
     }
     if (a.y > CFG.view.groundY) a.life = 0;
   }

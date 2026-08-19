@@ -486,64 +486,178 @@ function drawArrows(ctx, S) {
   }
 }
 
-function drawHud(ctx, S, gap) {
-  const p = S.player;
-  ctx.textAlign = 'left';
-  ctx.fillStyle = C.hud;
-  ctx.font = '600 20px system-ui';
-  ctx.fillText(Math.floor(S.worldX / 50) + 'm', 26, 40);
-  ctx.fillStyle = C.hudDim;
-  ctx.font = '500 15px system-ui';
-  const side = gap < 0 ? '앞' : '뒤';
-  ctx.fillText((S.wave + 1) + '번째 호랑이 · 처치 ' + S.kills +
-    ' · ' + side + ' ' + Math.round(Math.abs(gap)), 26, 64);
+function drawHeart(ctx, x, y, filled) {
+  ctx.save();
+  ctx.fillStyle = filled ? C.vermilion : C.ink;
+  ctx.strokeStyle = C.paper;
+  ctx.globalAlpha = filled ? 1 : 0.28;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(x, y + 9);
+  ctx.bezierCurveTo(x - 20, y - 7, x - 28, y + 17, x, y + 34);
+  ctx.bezierCurveTo(x + 28, y + 17, x + 20, y - 7, x, y + 9);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawHud(ctx, S) {
+  if (S.phase !== 'play') return;
 
   for (let index = 0; index < CFG.player.hp; index++) {
-    ctx.fillStyle = index < p.hp ? C.danger : '#ffffff20';
-    ctx.fillRect(V.w - 34 - index * 30, 26, 20, 20);
+    drawHeart(ctx, 34 + index * 38, 24, index < S.player.hp);
   }
+
+  ctx.textAlign = 'right';
+  ctx.fillStyle = C.paper;
+  ctx.font = '800 36px system-ui';
+  ctx.fillText(String(S.score), V.w - 28, 48);
+  ctx.fillStyle = C.ochre;
+  ctx.font = '700 14px system-ui';
+  ctx.fillText('점수 · 처치 ' + S.kills, V.w - 28, 70);
 
   if (S.aiming) {
     const t = Math.min(S.charge / CFG.aim.chargeTime, 1);
-    bar(ctx, 26, V.h - 44, 220, 12, t, t > 0.6 ? C.charge : C.aim, '#ffffff18');
-    ctx.fillStyle = C.hudDim;
-    ctx.font = '500 13px system-ui';
-    ctx.fillText('시위', 26, V.h - 52);
+    const width = 280;
+    const x = (V.w - width) / 2;
+    const y = V.h - 38;
+    bar(ctx, x, y, width, 14, t,
+      t > CFG.aim.strongCharge ? C.vermilion : C.ochre, C.ink);
+    ctx.strokeStyle = C.paper;
+    ctx.lineWidth = 2;
+    ctx.strokeRect(x, y, width, 14);
+    ctx.textAlign = 'center';
+    ctx.fillStyle = C.paper;
+    ctx.font = '700 13px system-ui';
+    ctx.fillText('시위 당기기', V.w / 2, y - 8);
   }
+}
 
-  ctx.fillStyle = C.hudDim;
-  ctx.font = '500 13px system-ui';
-  ctx.fillText('W 점프 · S 수그리기 · A 뒤로 · D 앞으로 · 마우스 조준, 좌클릭 홀드 후 놓기',
-    26, V.h - 16);
+function drawControl(ctx, key, label, x, y) {
+  ctx.save();
+  ctx.globalAlpha = 0.08;
+  ctx.fillStyle = C.ink;
+  ctx.fillRect(x, y, 320, 44);
+  ctx.restore();
+
+  ctx.fillStyle = C.ochre;
+  ctx.fillRect(x + 8, y + 7, 82, 30);
+  ctx.textAlign = 'center';
+  ctx.fillStyle = C.paper;
+  ctx.font = '800 14px system-ui';
+  ctx.fillText(key, x + 49, y + 27);
+  ctx.textAlign = 'left';
+  ctx.fillStyle = C.ink;
+  ctx.font = '650 15px system-ui';
+  ctx.fillText(label, x + 106, y + 28);
+}
+
+function drawTitleOverlay(ctx) {
+  ctx.save();
+  ctx.globalAlpha = 0.78;
+  ctx.fillStyle = C.ink;
+  ctx.fillRect(0, 0, V.w, V.h);
+  ctx.globalAlpha = 0.96;
+  ctx.fillStyle = C.paper;
+  ctx.fillRect(80, 28, V.w - 160, V.h - 56);
+  ctx.globalAlpha = 1;
+  ctx.strokeStyle = C.ochre;
+  ctx.lineWidth = 4;
+  ctx.strokeRect(91, 39, V.w - 182, V.h - 78);
+
+  ctx.textAlign = 'center';
+  ctx.fillStyle = C.ink;
+  ctx.font = '900 49px serif';
+  ctx.fillText('《호랑이 추격》', V.w / 2, 94);
+  ctx.fillStyle = C.ochre;
+  ctx.font = '700 17px system-ui';
+  ctx.fillText('활 하나로 호랑이를 따돌려라', V.w / 2, 124);
+
+  ctx.save();
+  ctx.globalAlpha = 0.11;
+  ctx.fillStyle = C.vermilion;
+  ctx.fillRect(125, 145, V.w - 250, 48);
+  ctx.restore();
+  ctx.fillStyle = C.vermilion;
+  ctx.font = '750 14px system-ui';
+  ctx.fillText('빨간 예고가 뜨면 0.5초 — 서 있으면 위를, 수그리면 아래를 노린다',
+    V.w / 2, 175);
+
+  ctx.fillStyle = C.ink;
+  ctx.font = '800 17px system-ui';
+  ctx.fillText('조작법', V.w / 2, 225);
+  drawControl(ctx, 'W', '점프', 140, 242);
+  drawControl(ctx, 'S', '수그리기', 140, 298);
+  drawControl(ctx, 'A / D', '거리 조절', 140, 354);
+  drawControl(ctx, '마우스', '조준', 500, 242);
+  drawControl(ctx, '좌클릭', '홀드 → 놓기 발사', 500, 298);
+  drawControl(ctx, 'Space', '시작', 500, 354);
+
+  ctx.fillStyle = C.vermilion;
+  ctx.fillRect(V.w / 2 - 170, 435, 340, 44);
+  ctx.fillStyle = C.paper;
+  ctx.font = '800 18px system-ui';
+  ctx.fillText('Space — 추격 시작', V.w / 2, 463);
+  ctx.restore();
+}
+
+function drawGameOverOverlay(ctx, S) {
+  const distance = Math.max(0, Math.floor(S.worldX / CFG.score.meterPx));
+  ctx.save();
+  ctx.globalAlpha = 0.82;
+  ctx.fillStyle = C.ink;
+  ctx.fillRect(0, 0, V.w, V.h);
+  ctx.globalAlpha = 0.97;
+  ctx.fillStyle = C.paper;
+  ctx.fillRect(250, 42, 460, 456);
+  ctx.globalAlpha = 1;
+  ctx.strokeStyle = C.ochre;
+  ctx.lineWidth = 4;
+  ctx.strokeRect(261, 53, 438, 434);
+
+  ctx.textAlign = 'center';
+  ctx.fillStyle = C.vermilion;
+  ctx.font = '900 42px serif';
+  ctx.fillText('쓰러졌다', V.w / 2, 112);
+  ctx.fillStyle = C.ink;
+  ctx.font = '700 15px system-ui';
+  ctx.fillText('최종 점수', V.w / 2, 149);
+  ctx.font = '900 58px system-ui';
+  ctx.fillText(String(S.score), V.w / 2, 209);
+
+  ctx.fillStyle = C.ochre;
+  ctx.font = '700 14px system-ui';
+  ctx.fillText('처치 수', 380, 251);
+  ctx.fillText('달린 거리', 580, 251);
+  ctx.fillStyle = C.ink;
+  ctx.font = '850 26px system-ui';
+  ctx.fillText(String(S.kills), 380, 282);
+  ctx.fillText(distance + 'm', 580, 282);
+
+  ctx.save();
+  ctx.globalAlpha = 0.09;
+  ctx.fillStyle = S.isNewBest ? C.vermilion : C.ink;
+  ctx.fillRect(310, 313, 340, 76);
+  ctx.restore();
+  ctx.fillStyle = S.isNewBest ? C.vermilion : C.ochre;
+  ctx.font = '850 17px system-ui';
+  ctx.fillText(S.isNewBest ? '신기록!' : '최고 기록', V.w / 2, 340);
+  ctx.fillStyle = C.ink;
+  ctx.font = '850 28px system-ui';
+  ctx.fillText(String(S.bestScore), V.w / 2, 374);
+
+  ctx.fillStyle = C.vermilion;
+  ctx.fillRect(V.w / 2 - 120, 417, 240, 44);
+  ctx.fillStyle = C.paper;
+  ctx.font = '800 18px system-ui';
+  ctx.fillText('Space — 다시 도전', V.w / 2, 445);
+  ctx.restore();
 }
 
 function drawOverlay(ctx, S) {
-  if (S.phase === 'play') return;
-  ctx.fillStyle = '#12101ae6';
-  ctx.fillRect(0, 0, V.w, V.h);
-  ctx.textAlign = 'center';
-  ctx.fillStyle = C.hud;
-  if (S.phase === 'title') {
-    ctx.font = '700 46px system-ui';
-    ctx.fillText('호랑이 추격', V.w / 2, V.h / 2 - 60);
-    ctx.font = '500 17px system-ui';
-    ctx.fillStyle = C.hudDim;
-    ctx.fillText('호랑이가 옆을 추월해 앞을 막고 뒤돌면 공격이 온다', V.w / 2, V.h / 2 - 16);
-    ctx.fillText('빨간 칸이 뜨면 0.5초 안에 자세를 바꿔라 — 위쪽이면 S, 아래쪽이면 W', V.w / 2, V.h / 2 + 12);
-    ctx.fillText('추월하는 순간과 휘두른 직후가 강한 화살을 꽂을 기회다', V.w / 2, V.h / 2 + 40);
-    ctx.fillStyle = C.aim;
-    ctx.font = '600 20px system-ui';
-    ctx.fillText('스페이스를 눌러 시작', V.w / 2, V.h / 2 + 92);
-  } else {
-    ctx.font = '700 40px system-ui';
-    ctx.fillText('따라잡혔다', V.w / 2, V.h / 2 - 26);
-    ctx.font = '500 20px system-ui';
-    ctx.fillStyle = C.hudDim;
-    ctx.fillText(Math.floor(S.worldX / 50) + 'm · 호랑이 ' + S.kills + '마리', V.w / 2, V.h / 2 + 10);
-    ctx.fillStyle = C.aim;
-    ctx.font = '600 20px system-ui';
-    ctx.fillText('스페이스를 눌러 다시', V.w / 2, V.h / 2 + 58);
-  }
+  if (S.phase === 'title') drawTitleOverlay(ctx);
+  else if (S.phase === 'over') drawGameOverOverlay(ctx, S);
 }
 
 export function render(ctx, S) {
@@ -569,6 +683,6 @@ export function render(ctx, S) {
   drawArrows(ctx, S);
   ctx.restore();
 
-  drawHud(ctx, S, gap);
+  drawHud(ctx, S);
   drawOverlay(ctx, S);
 }
