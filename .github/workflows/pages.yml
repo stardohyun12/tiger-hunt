@@ -1,0 +1,53 @@
+# dist/play.html 을 GitHub Pages 로 배포한다.
+# dist/ 는 .gitignore 대상이므로 CI 가 매번 build.mjs 로 새로 굽는다.
+name: Deploy to Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # 의존성 0 프로젝트 — install 단계가 없다
+      - name: 결정론 테스트
+        run: node --test tests/determinism.test.mjs
+
+      - name: 단일 파일 빌드
+        run: node build.mjs
+
+      - name: 배포 디렉터리 구성
+        run: |
+          mkdir -p _site
+          cp dist/play.html _site/index.html
+          # 공유 링크에서 바로 열리도록 루트에도 play.html 유지
+          cp dist/play.html _site/play.html
+          [ -d public ] && cp -r public/. _site/ || true
+          ls -la _site
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deploy
+        uses: actions/deploy-pages@v4
