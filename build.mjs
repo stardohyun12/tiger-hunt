@@ -8,7 +8,10 @@
 
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 
-const ORDER = ['config','state','fx','viewport','input','player','tiger','arrow','obstacle','render','main'];
+const ORDER = [
+  'config', 'rng', 'state', 'viewport', 'input', 'player', 'tiger', 'arrow',
+  'obstacle', 'sim', 'replay', 'fx', 'render', 'main'
+];
 
 const body = ORDER.map(name => {
   const src = readFileSync(`src/${name}.js`, 'utf8')

@@ -1,11 +1,12 @@
 // CODEMAP
 // role : 게임 상태 생성/초기화
 // 핵심 : createState(), newTiger()
-// 의존 : config
+// 의존 : config, rng
 // 연관 : main(리셋), 모든 update 모듈이 이 형태를 전제로 동작
 // 주의 : 상태는 전부 이 객체 하나에 모은다. 모듈 안에 지역 상태를 두지 말 것.
 
 import { CFG } from './config.js';
+import { rngFromSeed } from './rng.js';
 
 export function newTiger(wave) {
   const hp = CFG.tiger.hp + CFG.tiger.hpPerWave * wave;
@@ -20,9 +21,13 @@ export function newTiger(wave) {
   };
 }
 
-export function createState() {
+export function createState(seed) {
+  const normalizedSeed = seed >>> 0;
   const t = newTiger(0);
   const S = {
+    seed: normalizedSeed,
+    rng: rngFromSeed(normalizedSeed),
+    frame: 0,
     phase: 'title',            // title | play | over
     t: 0, worldX: 0, wave: 0, kills: 0,
 
@@ -32,10 +37,12 @@ export function createState() {
     },
     tiger: t,
 
-    aiming: false, charge: 0, aimDir: { x: -1, y: -0.2 },
+    aiming: false, charge: 0, aimX: 300, aimY: 300,
     arrows: [], obstacles: [], nextObsX: 1000,
 
-    hitstop: 0, trauma: 0
+    hitstop: 0, trauma: 0,
+    events: [],
+    replay: { seed: normalizedSeed, frames: 0, inputs: [] }
   };
   t.x = -CFG.tiger.gapStart;
   return S;

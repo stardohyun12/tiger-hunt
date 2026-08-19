@@ -1,7 +1,7 @@
 // CODEMAP
 // role : 전 화면 그리기 (도형 플레이스홀더)
 // 핵심 : render()
-// 의존 : config, state, fx, player, tiger, arrow
+// 의존 : config, state, fx, player, tiger, arrow(읽기 전용 조준 계산)
 // 연관 : Day 3에 이 파일만 스프라이트로 교체하면 된다
 // 주의 : 상태를 바꾸지 말 것. 읽기 전용.
 
@@ -10,7 +10,7 @@ import { gapOf } from './state.js';
 import { shakeOf } from './fx.js';
 import { playerHeight } from './player.js';
 import { tigerVulnerable } from './tiger.js';
-import { drawAimPreview } from './arrow.js';
+import { aimVector, bowScreen } from './arrow.js';
 
 const V = CFG.view;
 
@@ -38,6 +38,23 @@ function drawTelegraph(ctx, S, sx) {
     ctx.globalAlpha = 0.85;
     ctx.fillStyle = '#fff';
     ctx.fillRect(sx, y0, K.reach, h);
+  }
+  ctx.globalAlpha = 1;
+}
+
+function drawAimPreview(ctx, S) {
+  const t = Math.min(S.charge / CFG.aim.chargeTime, 1);
+  const d = aimVector(S, S.aimX, S.aimY), b = bowScreen(S);
+  const p = CFG.aim.powerMin + (CFG.aim.powerMax - CFG.aim.powerMin) * t;
+  let x = b.x, y = b.y, vx = d.x * p, vy = d.y * p;
+  const step = 0.026;
+  ctx.fillStyle = C.aim;
+  for (let i = 0; i < 44; i++) {
+    vy += CFG.aim.gravity * step;
+    x += vx * step; y += vy * step;
+    if (y > CFG.view.groundY || x < -80 || x > CFG.view.w + 80) break;
+    ctx.globalAlpha = 0.5 * (1 - i / 44);
+    ctx.fillRect(x - 2, y - 2, 4, 4);
   }
   ctx.globalAlpha = 1;
 }

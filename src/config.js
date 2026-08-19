@@ -5,6 +5,16 @@
 // 연관 : 모든 모듈이 여기서만 숫자를 읽는다
 // 주의 : 다른 파일에 숫자를 하드코딩하지 말 것. 감각 튜닝은 전부 이 파일에서만.
 
+export const FIXED_DT = 1 / 60;
+export const FIXED_STEPS_MAX = 5;
+
+export const INPUT_KEY = {
+  W: 1,
+  S: 2,
+  A: 4,
+  D: 8
+};
+
 export const CFG = {
   view: { w: 960, h: 540, groundY: 420, playerScreenX: 640 },
 

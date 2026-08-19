@@ -1,12 +1,11 @@
 // CODEMAP
 // role : 활 차지-릴리스와 화살 물리/명중
-// 핵심 : startCharge(), fireArrow(), updateArrows(), aimPreview()
-// 의존 : config, input(마우스), viewport, tiger(피해)
+// 핵심 : startCharge(), fireArrow(), updateArrows(), aimVector()
+// 의존 : config, tiger(피해)
 // 연관 : player(조준 중 감속은 player.js에서 처리)
 // 주의 : 좌표계는 화면 y가 아래로 증가. 월드 x만 카메라로 환산한다.
 
-import { CFG, C } from './config.js';
-import { mouse } from './input.js';
+import { CFG, FIXED_DT } from './config.js';
 import { damageTiger } from './tiger.js';
 
 export function bowScreen(S) {
@@ -18,17 +17,17 @@ export function bowScreen(S) {
 
 export function startCharge(S) { S.aiming = true; S.charge = 0; }
 
-export function aimVector(S) {
+export function aimVector(S, aimX, aimY) {
   const b = bowScreen(S);
-  let dx = mouse.x - b.x, dy = mouse.y - b.y;
-  const len = Math.hypot(dx, dy) || 1;
+  const dx = aimX - b.x, dy = aimY - b.y;
+  const len = Math.sqrt(dx * dx + dy * dy) || 1;
   return { x: dx / len, y: dy / len };
 }
 
-export function fireArrow(S) {
+export function fireArrow(S, input) {
   if (!S.aiming) return;
   const t = Math.min(S.charge / CFG.aim.chargeTime, 1);
-  const d = aimVector(S);
+  const d = aimVector(S, input.ax, input.ay);
   const b = bowScreen(S);
   const p = CFG.aim.powerMin + (CFG.aim.powerMax - CFG.aim.powerMin) * t;
   S.arrows.push({
@@ -39,12 +38,12 @@ export function fireArrow(S) {
   S.aiming = false; S.charge = 0;
 }
 
-export function updateArrows(S, dt) {
+export function updateArrows(S) {
   const T = S.tiger;
   for (const a of S.arrows) {
-    a.vy += CFG.aim.gravity * dt;
-    a.x += a.vx * dt; a.y += a.vy * dt;
-    a.life -= dt;
+    a.vy += CFG.aim.gravity * FIXED_DT;
+    a.x += a.vx * FIXED_DT; a.y += a.vy * FIXED_DT;
+    a.life -= FIXED_DT;
 
     const inX = a.x > T.x - CFG.tiger.w / 2 && a.x < T.x + CFG.tiger.w / 2;
     const inY = a.y > CFG.view.groundY - CFG.tiger.h && a.y < CFG.view.groundY;
@@ -59,21 +58,4 @@ export function updateArrows(S, dt) {
     if (a.y > CFG.view.groundY) a.life = 0;
   }
   S.arrows = S.arrows.filter(a => a.life > 0);
-}
-
-export function drawAimPreview(ctx, S) {
-  const t = Math.min(S.charge / CFG.aim.chargeTime, 1);
-  const d = aimVector(S), b = bowScreen(S);
-  const p = CFG.aim.powerMin + (CFG.aim.powerMax - CFG.aim.powerMin) * t;
-  let x = b.x, y = b.y, vx = d.x * p, vy = d.y * p;
-  const step = 0.026;
-  ctx.fillStyle = C.aim;
-  for (let i = 0; i < 44; i++) {
-    vy += CFG.aim.gravity * step;
-    x += vx * step; y += vy * step;
-    if (y > CFG.view.groundY || x < -80 || x > CFG.view.w + 80) break;
-    ctx.globalAlpha = 0.5 * (1 - i / 44);
-    ctx.fillRect(x - 2, y - 2, 4, 4);
-  }
-  ctx.globalAlpha = 1;
 }
