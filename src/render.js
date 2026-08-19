@@ -10,6 +10,7 @@ import { gapOf } from './state.js';
 import { shakeOf } from './fx.js';
 import { tigerVulnerable } from './tiger.js';
 import { aimVector, bowScreen } from './arrow.js';
+import { touchActive, touchKeyDown } from './input.js';
 
 const V = CFG.view;
 
@@ -472,6 +473,21 @@ function drawAimPreview(ctx, S) {
     ctx.fillRect(x - 2, y - 2, 4, 4);
   }
   ctx.globalAlpha = 1;
+
+  const mark = CFG.touch.aimMark;
+  ctx.strokeStyle = C.aim;
+  ctx.lineWidth = mark.lineWidth;
+  ctx.beginPath();
+  ctx.arc(S.aimX, S.aimY, mark.r, 0, Math.PI * 2);
+  ctx.moveTo(S.aimX - mark.r - mark.arm, S.aimY);
+  ctx.lineTo(S.aimX - mark.r, S.aimY);
+  ctx.moveTo(S.aimX + mark.r, S.aimY);
+  ctx.lineTo(S.aimX + mark.r + mark.arm, S.aimY);
+  ctx.moveTo(S.aimX, S.aimY - mark.r - mark.arm);
+  ctx.lineTo(S.aimX, S.aimY - mark.r);
+  ctx.moveTo(S.aimX, S.aimY + mark.r);
+  ctx.lineTo(S.aimX, S.aimY + mark.r + mark.arm);
+  ctx.stroke();
 }
 
 function drawArrows(ctx, S) {
@@ -553,6 +569,46 @@ function drawControl(ctx, key, label, x, y) {
   ctx.fillText(label, x + 106, y + 28);
 }
 
+function drawTouchControls(ctx) {
+  const lines = [
+    '좌·중앙 화면을 눌러 조준 → 홀드하면 차지 → 떼면 발사',
+    '우하단 4버튼: 앞 · 뒤 · 점프 · 수그림',
+    '화면 아무 데나 탭하면 시작'
+  ];
+  ctx.textAlign = 'center';
+  ctx.fillStyle = C.ink;
+  ctx.font = CFG.touch.title.font;
+  for (let index = 0; index < lines.length; index++) {
+    ctx.fillText(lines[index], V.w / 2,
+      CFG.touch.title.y + index * CFG.touch.title.lineGap);
+  }
+}
+
+function drawTouchPads(ctx) {
+  if (!touchActive()) return;
+  for (const pad of CFG.touch.pads) {
+    const pressed = touchKeyDown(pad.key);
+    const radius = CFG.touch.r + (pressed ? CFG.touch.pressedGrow : 0);
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(pad.x, pad.y, radius, 0, Math.PI * 2);
+    ctx.globalAlpha = pressed ? CFG.touch.pressedAlpha : CFG.touch.fillAlpha;
+    ctx.fillStyle = pressed ? C.ochre : C.paper;
+    ctx.fill();
+    ctx.globalAlpha = pressed ? 1 : CFG.touch.strokeAlpha;
+    ctx.strokeStyle = pressed ? C.ochre : C.paper;
+    ctx.lineWidth = CFG.touch.lineWidth;
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = C.paper;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = CFG.touch.labelFont;
+    ctx.fillText(pad.label, pad.x, pad.y);
+    ctx.restore();
+  }
+}
+
 function drawTitleOverlay(ctx) {
   ctx.save();
   ctx.globalAlpha = 0.78;
@@ -587,18 +643,22 @@ function drawTitleOverlay(ctx) {
   ctx.fillStyle = C.ink;
   ctx.font = '800 17px system-ui';
   ctx.fillText('조작법', V.w / 2, 225);
-  drawControl(ctx, 'W', '점프', 140, 242);
-  drawControl(ctx, 'S', '수그리기', 140, 298);
-  drawControl(ctx, 'A / D', '거리 조절', 140, 354);
-  drawControl(ctx, '마우스', '조준', 500, 242);
-  drawControl(ctx, '좌클릭', '홀드 → 놓기 발사', 500, 298);
-  drawControl(ctx, 'Space', '시작', 500, 354);
+  if (touchActive()) {
+    drawTouchControls(ctx);
+  } else {
+    drawControl(ctx, 'W', '점프', 140, 242);
+    drawControl(ctx, 'S', '수그리기', 140, 298);
+    drawControl(ctx, 'A / D', '거리 조절', 140, 354);
+    drawControl(ctx, '마우스', '조준', 500, 242);
+    drawControl(ctx, '좌클릭', '홀드 → 놓기 발사', 500, 298);
+    drawControl(ctx, 'Space', '시작', 500, 354);
+  }
 
   ctx.fillStyle = C.vermilion;
   ctx.fillRect(V.w / 2 - 170, 435, 340, 44);
   ctx.fillStyle = C.paper;
   ctx.font = '800 18px system-ui';
-  ctx.fillText('Space — 추격 시작', V.w / 2, 463);
+  ctx.fillText(touchActive() ? '탭 — 추격 시작' : 'Space — 추격 시작', V.w / 2, 463);
   ctx.restore();
 }
 
@@ -651,7 +711,7 @@ function drawGameOverOverlay(ctx, S) {
   ctx.fillRect(V.w / 2 - 120, 417, 240, 44);
   ctx.fillStyle = C.paper;
   ctx.font = '800 18px system-ui';
-  ctx.fillText('Space — 다시 도전', V.w / 2, 445);
+  ctx.fillText(touchActive() ? '화면 탭 — 다시 도전' : 'Space — 다시 도전', V.w / 2, 445);
   ctx.restore();
 }
 
@@ -683,6 +743,7 @@ export function render(ctx, S) {
   drawArrows(ctx, S);
   ctx.restore();
 
+  drawTouchPads(ctx);
   drawHud(ctx, S);
   drawOverlay(ctx, S);
 }

@@ -71,6 +71,25 @@ export const CFG = {
     kill: 500
   },
 
+  touch: {
+    r: 50,
+    slack: 24,
+    pressedGrow: 4,
+    fillAlpha: 0.16,
+    strokeAlpha: 0.55,
+    pressedAlpha: 0.45,
+    lineWidth: 2,
+    labelFont: '800 15px system-ui',
+    aimMark: { r: 9, arm: 5, lineWidth: 2 },
+    title: { y: 270, lineGap: 54, font: '750 17px system-ui' },
+    pads: [
+      { key: 'S', label: '수그림', x: 770, y: 368 },
+      { key: 'W', label: '점프',   x: 884, y: 368 },
+      { key: 'A', label: '뒤',     x: 770, y: 478 },
+      { key: 'D', label: '앞',     x: 884, y: 478 }
+    ]
+  },
+
   obs: {
     gapMin: 540, gapMax: 1020, w: 48,
     rockMin: 40, rockMax: 70,
