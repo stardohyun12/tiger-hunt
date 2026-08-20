@@ -40,10 +40,31 @@ jobs:
         run: |
           mkdir -p _site
           cp dist/play.html _site/index.html
-          # 공유 링크에서 바로 열리도록 루트에도 play.html 유지
           cp dist/play.html _site/play.html
-          [ -d public ] && cp -r public/. _site/ || true
+          # 아트 판정 페이지 — 도현이 폰에서 1×/4×/흑실루엣으로 스프라이트를 본다
+          if [ -d docs/art ]; then cp docs/art/*.html _site/ 2>/dev/null || true; fi
+          if [ -d public ]; then cp -r public/. _site/ 2>/dev/null || true; fi
           ls -la _site
+
+      # 폰 브라우저가 캐시를 물고 있으면 "고쳤는데 그대로"가 된다.
+      # 화면 구석에 커밋 해시를 박아 지금 보는 빌드를 구분할 수 있게 한다.
+      - name: 빌드 스탬프 주입
+        env:
+          SHA: ${{ github.sha }}
+        run: |
+          node -e '
+            const fs = require("fs");
+            const sha = (process.env.SHA || "").slice(0, 7);
+            const stamp = `<div style="position:fixed;left:4px;bottom:3px;z-index:99;`
+              + `font:9px ui-monospace,monospace;color:#E8DCC0;opacity:.38;`
+              + `pointer-events:none;user-select:none">${sha}</div>`;
+            for (const f of ["_site/index.html", "_site/play.html"]) {
+              const html = fs.readFileSync(f, "utf8");
+              if (!html.includes("</body>")) { console.error("no </body> in " + f); process.exit(1); }
+              fs.writeFileSync(f, html.replace("</body>", stamp + "</body>"));
+            }
+            console.log("빌드 스탬프:", sha);
+          '
 
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
