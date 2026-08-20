@@ -29,7 +29,7 @@ export const CFG = {
     hp: 3, invuln: 1.2
   },
 
-  // 호랑이. 뒤에서 추격한 뒤 추월해 앞을 막고 교전한다.
+  // 호랑이. 평소에는 뒤에서 교전하고, 실제로 따라잡았을 때만 추월해 앞을 막는다.
   tiger: {
     w: 120, h: 74,
     chaseSpeed: 245, chaseSpeedPerWave: 14,
@@ -39,7 +39,7 @@ export const CFG = {
     aheadChaseMul: 0.7,
     hp: 110, hpPerWave: 60,
     gapStart: 380, gapMax: 620,
-    engageGap: 175,         // 이보다 가까우면 멈춰서 공격
+    engageGap: 175,         // 후방에서 앞발 공격을 예고하기 시작하는 거리
     disengageGap: 255,      // 이보다 멀어지면 다시 추격
     blockGap: 210,
     bodyGap: 95,
@@ -94,6 +94,49 @@ export const CFG = {
     gapMin: 540, gapMax: 1020, w: 48,
     rockMin: 40, rockMax: 70,
     branchClearY: 66        // 이 높이보다 낮아야(수그려야) 통과
+  },
+
+  // 렌더 전용 골격. 보폭은 월드 거리 기반이며 다리 길이는 2본 IK로 보존한다.
+  rig: {
+    deer: {
+      lift: 10, bodyRy: 19,
+      strideLen: 72, duty: 0.6, liftMax: 16, footInset: 2,
+      hipY: 54, legX: [-30, -13, 16, 32],
+      legOffset: [0, 0.5, 0.5, 0],
+      thigh: [32, 29, 29, 32], shin: [29, 29, 29, 29],
+      bend: [1, 1, 1, 1],
+      legWidth: 7, hoofWidth: 4, hoofHalf: 5,
+      shadowRx: 47, shadowRy: 8, shadowAlpha: 0.22,
+      shadowMinScale: 0.48, shadowMinAlpha: 0.18, shadowHeight: 180,
+      dustPhase: 0.11, dustCount: 3, dustSpread: 17,
+      dustLift: 9, dustRadius: 2.4, dustAlpha: 0.34
+    },
+    tiger: {
+      lift: 7, bodyRy: 22,
+      strideLen: 68, duty: 0.6, liftMax: 13, footInset: 2,
+      hipY: 49, legX: [-38, -18, 18, 38],
+      legOffset: [0.5, 0.6, 0, 0.1],
+      thigh: [29, 29, 26, 26], shin: [27, 27, 27, 27],
+      bend: [1, 1, 1, 1], frontStart: 2, attackLeg: 3,
+      legWidth: 10, pawWidth: 7, pawHalf: 6,
+      shadowRx: 55, shadowRy: 9, shadowAlpha: 0.22,
+      dustPhase: 0.09, dustCount: 3, dustSpread: 19,
+      dustLift: 8, dustRadius: 2.7, dustAlpha: 0.32
+    },
+    rider: {
+      bounce: 2,
+      shoulderXStand: -5, shoulderXCrouch: -2,
+      shoulderYStand: 82, shoulderYCrouch: 62,
+      hipXStand: -12, hipXCrouch: -18, hipY: 55,
+      headXStand: -6, headXCrouch: -15,
+      headYStand: 99, headYCrouch: 75,
+      kneeX: 4, kneeY: 50, footX: 14, footY: 43,
+      torsoWidth: 10, limbWidth: 6, headR: 10
+    },
+    ikMinDistance: 0.001, ikReachInset: 0.01,
+    dustSeedA: 37, dustSeedB: 17, dustModulus: 101,
+    dustStartScale: 0.35, dustEndScale: 0.65,
+    dustRadiusMin: 0.7, dustRadiusRange: 0.5
   },
 
   // [hitstop(초), trauma(0~1), 진동(ms)]

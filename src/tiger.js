@@ -1,5 +1,5 @@
 // CODEMAP
-// role : 호랑이 상태머신 — 추격 / 추월 / 앞을 막고 뒤돈 뒤 앞발 후려치기
+// role : 호랑이 상태머신 — 후방 교전 / 추월 / 앞을 막고 뒤돈 뒤 정면 교전
 // 핵심 : updateTiger(), damageTiger()
 // 의존 : config, state(gapOf), player(존 판정)
 // 연관 : arrow(피해 적용), render(텔레그래프 표시)
@@ -50,6 +50,12 @@ function startWindup(S) {
   T.zone = inHighZone(S) ? 'high' : 'low';   // 진입 시점의 지금 자세를 노린다
 }
 
+function startOvertake(S) {
+  S.tiger.state = 'overtake';
+  S.player.stumble = CFG.player.stumbleTime;
+  S.events.push({ kind: 'stumble' });
+}
+
 function blockPlayerBody(S) {
   const T = S.tiger;
   if (T.state === 'chase' || T.state === 'overtake') return;
@@ -63,12 +69,23 @@ function blockPlayerBody(S) {
 export function updateTiger(S) {
   const T = S.tiger, K = CFG.tiger;
 
+  // 후방 교전 중 몸이 맞닿으면 입력과 무관하게 추월한다.
+  // 앞쪽 정면 교전(gap < 0)은 기존 brace 이후 흐름을 유지한다.
+  const contactGap = gapOf(S);
+  const rearEngagement = T.state !== 'chase' && T.state !== 'overtake' &&
+    T.state !== 'brace' && contactGap >= 0;
+  if (rearEngagement && contactGap <= K.bodyGap) {
+    startOvertake(S);
+  }
+
   if (T.state === 'chase') {
     const chaseSpeed = gapOf(S) < 0 ? K.blockSpeed * K.aheadChaseMul : T.chaseSpeed;
     T.x += chaseSpeed * FIXED_DT;
     const gap = gapOf(S);
-    if (gap >= 0 && gap <= K.engageGap) {
-      T.state = 'overtake';
+    if (gap >= 0 && gap <= K.bodyGap) {
+      startOvertake(S);
+    } else if (gap > K.bodyGap && gap <= K.engageGap) {
+      startWindup(S);
     }
   } else if (T.state === 'overtake') {
     T.x += K.overtakeSpeed * FIXED_DT;
@@ -105,6 +122,11 @@ export function updateTiger(S) {
         startWindup(S);
       }
     }
+  }
+
+  // 접근 적분이나 발톱 넉백으로 이번 프레임에 접촉선을 넘은 경우도 놓치지 않는다.
+  if (rearEngagement && T.state !== 'overtake' && gapOf(S) <= K.bodyGap) {
+    startOvertake(S);
   }
 
   blockPlayerBody(S);
