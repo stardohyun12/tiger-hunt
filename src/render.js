@@ -171,14 +171,55 @@ function drawObstacles(ctx, S) {
 function drawTelegraph(ctx, S, sx, gap) {
   const T = S.tiger;
   if (T.state !== 'windup' && T.state !== 'swing') return;
-  if (T.state === 'windup' && Math.floor(S.frame / A.telegraph.blinkFrames) % 2) return;
+  const K = A.telegraph;
   const direction = gap >= 0 ? 1 : -1;
-  const edge = sx + direction * CFG.tiger.w / 2;
-  const y = T.zone === 'high' ? A.telegraph.highY : A.telegraph.lowY;
-  const height = T.zone === 'high' ? A.telegraph.highH : A.telegraph.lowH;
+  const start = snap(sx);
+  const end = V.playerScreenX;
+  const bandX = Math.min(start, end);
+  const bandW = Math.abs(end - start);
+  const y = T.zone === 'high' ? K.highY : K.lowY;
+  const height = T.zone === 'high' ? K.highH : K.lowH;
   ctx.fillStyle = C.vermilion;
-  ctx.fillRect(snap(direction > 0 ? edge : edge - CFG.tiger.reach), y,
-    snap(CFG.tiger.reach), height);
+  if (T.state === 'swing') {
+    ctx.fillRect(bandX, y, bandW, height);
+    return;
+  }
+
+  const progress = clamp01(1 - T.timer / CFG.tiger.windup);
+  const filledCells = Math.floor(progress * K.cells);
+  const hideFill = progress >= K.urgentStart &&
+    Math.floor(S.frame / K.urgentBlinkFrames) % 2;
+  const step = bandW / K.cells;
+  ctx.save();
+  ctx.lineWidth = K.outline;
+  ctx.strokeStyle = C.vermilion;
+  for (let index = 0; index < K.cells; index++) {
+    const near = start + direction * index * step;
+    const far = start + direction * ((index + 1) * step - K.cellGap);
+    const cellX = snap(Math.min(near, far));
+    const cellW = snap(Math.abs(far - near));
+    if (index < filledCells && !hideFill) ctx.fillRect(cellX, y, cellW, height);
+    ctx.strokeRect(cellX, y, cellW, height);
+  }
+  ctx.fillRect(bandX, T.zone === 'high' ? y : y + height - K.capH, bandW, K.capH);
+  ctx.restore();
+}
+
+function drawTelegraphMarker(ctx, S) {
+  const T = S.tiger;
+  if (T.state !== 'windup' && T.state !== 'swing') return;
+  const K = A.telegraph;
+  const x = V.playerScreenX - K.markerW / 2;
+  const centerY = T.zone === 'high' ? K.markerHighY : K.markerLowY;
+  const y = centerY - K.markerH / 2;
+  ctx.save();
+  ctx.strokeStyle = C.vermilion;
+  ctx.fillStyle = C.vermilion;
+  ctx.lineWidth = K.markerLine;
+  ctx.strokeRect(x, y, K.markerW, K.markerH);
+  ctx.fillRect(x, T.zone === 'high' ? y : y + K.markerH - K.markerLine,
+    K.markerW, K.markerLine);
+  ctx.restore();
 }
 
 function drawBow(ctx, S, flash) {
@@ -517,6 +558,7 @@ export function render(ctx, S) {
     V.groundY - CFG.tiger.h - A.tigerBar.yGap,
     A.tigerBar.w, A.tigerBar.h, S.tiger.hp / S.tiger.hpMax);
   drawPlayer(ctx, S, playerFlash);
+  drawTelegraphMarker(ctx, S);
   if (S.aiming) drawAimPreview(ctx, S);
   drawArrows(ctx, S);
   ctx.restore();

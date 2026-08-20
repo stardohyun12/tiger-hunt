@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>호랑이 추격 — D8 스프라이트 판정판</title>
+<title>호랑이 추격 — D9 스프라이트 판정판</title>
 <style>
   :root { --paper:#E8DCC0; --ink:#2B2320; --ochre:#C8862A; --vermilion:#B03A2E; }
   * { box-sizing:border-box; }
@@ -20,6 +20,10 @@
     border:4px solid var(--vermilion); }
   .animation h2 { flex:0 0 100%; margin:0; color:var(--vermilion); font-size:16px; }
   .anim-box { display:grid; gap:6px; }
+  .comparison { margin-bottom:24px; padding:16px; border:4px solid var(--ink); overflow-x:auto; }
+  .comparison h2 { margin:0 0 12px; font-size:16px; }
+  .comparison-row { display:grid; grid-template-columns:repeat(3,minmax(250px,1fr)); gap:14px; }
+  .compare-box { display:grid; gap:7px; min-width:250px; }
   .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:14px; }
   .card { padding:12px; border:3px solid var(--ink); background:color-mix(in srgb,var(--paper) 88%,transparent); }
   .card h2 { margin:0 0 10px; font-size:15px; }
@@ -33,7 +37,7 @@
 </head>
 <body>
 <header>
-  <h1>《호랑이 추격》 D8 스프라이트 판정판</h1>
+  <h1>《호랑이 추격》 D9 스프라이트 판정판</h1>
   <button id="silhouette" type="button" aria-pressed="false">흑실루엣: 끔</button>
   <button id="background" type="button" aria-pressed="false">배경: 한지</button>
 </header>
@@ -43,6 +47,10 @@
     <h2>거리 기반 2프레임 교대 판정</h2>
     <div class="anim-box"><strong>사슴+기수</strong><div class="stage"><canvas id="deer-anim"></canvas></div></div>
     <div class="anim-box"><strong>호랑이</strong><div class="stage"><canvas id="tiger-anim"></canvas></div></div>
+  </section>
+  <section class="comparison">
+    <h2>예고 동작 비교 · 채움 비율</h2>
+    <div class="comparison-row" id="comparison"></div>
   </section>
   <section class="grid" id="grid"></section>
 </main>
@@ -118,26 +126,26 @@ const sprites = {
     'XXXXXX............XXXXXX'
   ],
   tigerWindup: [
-    '..................XXXX.........XX..XX...','..............XXXXXXXXX........XXXXXX...','............XXXXXXXXXXXX......XXXXXXXX..',
-    '..........XXXXXXXXXXXXXX.....XXXXXXXXXX.','........XXXXXXXXXXXXXXXX...XXXXXXXXXXXXX','......XXXXXXXXXXXXXXXXXX...XXXXXXXXXXXXX',
-    '....XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX','..XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX','.XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX',
-    'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX','XXXXXXXXXXXXXXooXXXXooXXXXXXXXXXXXXXXXXX','XXXXXXXXXXXXXXooXXXXooXXXXXXXXXXXXXXXXXX',
-    '.XXXXXXXXXXooXXXXooXXXXooXXXXXXXXXXXXXXX','..XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX','...XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX',
-    '....XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX','.....XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX','......XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX',
-    '.......XXXXXX......XXXXXX...............','.......XXXXX........XXXXX...............','......XXXX..........XXXX................',
-    '.....XXXX............XXXX...............','....XXXX..............XXXX..............','...XXXXX..............XXXXX.............',
-    '..XXXXXX..............XXXXXX............'
+    '....XX...............XX.................','...XXX..............XXXX................','..XXX..............XXXXX..........XX..XX',
+    '.XXX...............XXXXXX........XXXXXXX','.XXX................XXXXXX......XXXXXXXX','.XX..................XXXXXX....XXXXXXXXX',
+    '.XX...................XXXXXX...XXXXXXXXX','..XX...................XXXXXX..XXXXXXXXX','...XX.....XXXXXXXXXXXXXXX..XXX..XXXXXXXX',
+    '....XX..XXXXXXXXXXXXXXXXXXX.XXX..XXXXXXX','.....XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX','....XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX',
+    '.....XXXXXXXXooXXXXXXXooXXXXXXXooXXX....','.....XXXXXXXooXXXXXXooXXXXXXooXXXXX.....','......XXXXXXXXXooXXXXXXXooXXXXXXXX......',
+    '.......XXXXXXXXXXXXXXXXXXXXXXXXXX.......','........XXXXXXXXXXXXXXXXXXXXXXXX........','.........XXXXXXXXXXXXXXXXXXXXXX.........',
+    '.......XXXX...XXXX.....XXXX...XXXX......','.......XXXX...XXXX.....XXXX...XXXX......','......XXXX....XXXX......XXXX...XXXX.....',
+    '.....XXXX....XXXX........XXXX...XXXX....','....XXXX....XXXX..........XXXX...XXXX...','...XXXX....XXXX............XXXX...XXXX..',
+    '..XXXXX...XXXXX.............XXXXX..XXXXX'
   ],
   tigerSwing: [
-    '........................XX..XX..........','........................XXXXXX..........','.......................XXXXXXXX.........',
-    '......................XXXXXXXXXX........','.....................XXXXXXXXXXXX.......','....XXX..............XXXXXXXXXXXX.......',
-    '...XXXXX.........XXXXXXXXXXXXXXXX.......','..XXXXXX....XXXXXXXXXXXXXXXXXXXXX.......','.XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX',
-    'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX','XXXXXXXXXXXXooXXXXooXXXXXXXXXXXXXXXXXXXX','XXXXXXXXXXXXooXXXXooXXXXXXXXXXXXXXXXXXXX',
-    '.XXXXXXXXooXXXXooXXXXooXXXXXXXXXXXXXXXXX','..XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX','...XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX..XXXX',
-    '....XXXXXXXXXXXXXXXXXXXXXXXXXXXX.....XXX','.....XXXXXXXXXXXXXXXXXXXXXXXXX.........X','......XXXXXXXXXXXXXXXXXXXXXX............',
-    '.......XXXXX....XXXXX...................','......XXXX.......XXXX...................','.....XXXX.........XXXX..................',
-    '....XXXX...........XXXX.................','...XXXXX...........XXXXX................','..XXXXXX...........XXXXXX...............',
-    '.XXXXXXX...........XXXXXXX..............'
+    '....XX..................................','...XXX..................................','..XXX.............................XX..XX',
+    '.XXX.............................XXXXXXX','.XXX............................XXXXXXXX','.XX............................XXXXXXXXX',
+    '.XX............................XXXXXXXXX','..XX...........................XXXXXXXXX','...XX.....XXXXXXXXXXXXXXX.......XXXXXXXX',
+    '....XX..XXXXXXXXXXXXXXXXXXX......XXXXXXX','.....XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX','....XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX',
+    '.....XXXXXXXXooXXXXXXXooXXXXXXXooXXX..XX','.....XXXXXXXooXXXXXXooXXXXXXooXXXXX..XXX','......XXXXXXXXXooXXXXXXXooXXXXXXXX..XXXX',
+    '.......XXXXXXXXXXXXXXXXXXXXXXXXXX..XXXXX','........XXXXXXXXXXXXXXXXXXXXXXXX..XXXXXX','.........XXXXXXXXXXXXXXXXXXXXXX..XXXXXXX',
+    '.......XXXX...XXXX.....XXXX...XXXX......','.......XXXX...XXXX.....XXXX...XXXX......','......XXXX....XXXX......XXXX...XXXX.....',
+    '.....XXXX....XXXX........XXXX...XXXX....','....XXXX....XXXX..........XXXX...XXXX...','...XXXX....XXXX............XXXX...XXXX..',
+    '..XXXXX...XXXXX.............XXXXX..XXXXX'
   ],
   rockLow: [
     '................','.......XX.......','......XXXX......','.....XXXXXX.....','....XXXXXXXX....','...XXXXXXXXXX...',
@@ -189,10 +197,16 @@ function paint(canvas, name, scale) {
   }
 }
 
+function fillRatio(name) {
+  const sprite = sprites[name];
+  const filled = sprite.join('').replaceAll('.', '').length;
+  return (filled / (sprite.length * sprite[0].length) * 100).toFixed(1);
+}
+
 function addCard(name) {
   const card = document.createElement('article');
   card.className = 'card';
-  card.innerHTML = `<h2>${name} · ${sprites[name][0].length}×${sprites[name].length}</h2><div class="views"></div>`;
+  card.innerHTML = `<h2>${name} · ${sprites[name][0].length}×${sprites[name].length} · 채움 ${fillRatio(name)}%</h2><div class="views"></div>`;
   const views = card.querySelector('.views');
   for (const scale of [1, 4]) {
     const view = document.createElement('div');
@@ -204,9 +218,22 @@ function addCard(name) {
   document.querySelector('#grid').append(card);
 }
 
+function repaintComparison() {
+  const comparison = document.querySelector('#comparison');
+  comparison.replaceChildren();
+  for (const name of ['tigerRunA', 'tigerWindup', 'tigerSwing']) {
+    const box = document.createElement('div');
+    box.className = 'compare-box';
+    box.innerHTML = `<strong>${name} · 채움 ${fillRatio(name)}%</strong><div class="stage"><canvas></canvas></div>`;
+    paint(box.querySelector('canvas'), name, 4);
+    comparison.append(box);
+  }
+}
+
 function repaint() {
   document.querySelector('#grid').replaceChildren();
   Object.keys(sprites).forEach(addCard);
+  repaintComparison();
 }
 
 const deerAnim = document.querySelector('#deer-anim');
