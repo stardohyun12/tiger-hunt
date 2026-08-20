@@ -7,7 +7,7 @@
 
 import { createState, gapOf } from '../src/state.js';
 import { updateSimulation } from '../src/sim.js';
-import { INPUT_KEY } from '../src/config.js';
+import { CFG, INPUT_KEY } from '../src/config.js';
 
 function run(label, k) {
   const S = createState(20260820);
@@ -15,12 +15,24 @@ function run(label, k) {
   const input = { f: 0, k, ax: 300, ay: 300, c: 0 };
   let prevState = S.tiger.state;
   let rearWindup = 0, frontWindup = 0, overtakes = 0;
+  let maxAbsGap = 0, maxTigerStep = 0;
+  let gapMaxStreak = 0, longestGapMaxStreak = 0;
   const hist = {};
   const clawGaps = [];
   for (let f = 0; f < 60 * 60 && S.phase === 'play'; f++) {
     input.f = f;
     const gapBefore = gapOf(S);
+    const tigerXBefore = S.tiger.x;
     updateSimulation(S, input);
+    const gapAfter = gapOf(S);
+    maxAbsGap = Math.max(maxAbsGap, Math.abs(gapAfter));
+    maxTigerStep = Math.max(maxTigerStep, Math.abs(S.tiger.x - tigerXBefore));
+    if (Math.abs(gapAfter) >= CFG.tiger.gapMax - 0.001) {
+      gapMaxStreak++;
+      longestGapMaxStreak = Math.max(longestGapMaxStreak, gapMaxStreak);
+    } else {
+      gapMaxStreak = 0;
+    }
     hist[S.tiger.state] = (hist[S.tiger.state] || 0) + 1;
     if (S.tiger.state !== prevState) {
       if (S.tiger.state === 'windup') (gapBefore > 0 ? rearWindup++ : frontWindup++);
@@ -35,6 +47,7 @@ function run(label, k) {
   console.log(`[${label}] ${(S.frame/60).toFixed(1)}s phase=${S.phase} score=${S.score}`);
   console.log(`   예고: 후방 ${rearWindup}회 / 전방 ${frontWindup}회 · 추월 ${overtakes}회`);
   console.log(`   발톱 gap: [${clawGaps.join(', ')}]`);
+  console.log(`   이동: 최대 |gap| ${maxAbsGap.toFixed(3)}px · 호랑이 최대 ${maxTigerStep.toFixed(6)}px/frame · gapMax 최장 ${longestGapMaxStreak}f`);
   console.log(`   상태: ${pct}\n`);
 }
 

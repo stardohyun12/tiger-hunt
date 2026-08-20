@@ -39,7 +39,12 @@ function clawHit(S) {
   if (p.invuln > 0) return;
   p.hp--; p.invuln = CFG.player.invuln;
   S.flash.playerUntil = S.frame + 2;
-  S.worldX -= CFG.tiger.clawKnockback;
+  if (gapOf(S) > 0) {
+    S.worldX += CFG.tiger.clawKnockbackRear;
+    p.stumble = CFG.player.stumbleTime;
+  } else {
+    S.worldX -= CFG.tiger.clawKnockback;
+  }
   S.events.push({ kind: 'claw' });
   if (p.hp <= 0) S.phase = 'over';
 }
@@ -69,23 +74,21 @@ function blockPlayerBody(S) {
 export function updateTiger(S) {
   const T = S.tiger, K = CFG.tiger;
 
-  // 후방 교전 중 몸이 맞닿으면 입력과 무관하게 추월한다.
-  // 앞쪽 정면 교전(gap < 0)은 기존 brace 이후 흐름을 유지한다.
-  const contactGap = gapOf(S);
-  const rearEngagement = T.state !== 'chase' && T.state !== 'overtake' &&
-    T.state !== 'brace' && contactGap >= 0;
-  if (rearEngagement && contactGap <= K.bodyGap) {
-    startOvertake(S);
-  }
-
   if (T.state === 'chase') {
-    const chaseSpeed = gapOf(S) < 0 ? K.blockSpeed * K.aheadChaseMul : T.chaseSpeed;
-    T.x += chaseSpeed * FIXED_DT;
-    const gap = gapOf(S);
-    if (gap >= 0 && gap <= K.bodyGap) {
+    const gapBefore = gapOf(S);
+    if (gapBefore >= 0 && gapBefore <= K.bodyGap) {
       startOvertake(S);
-    } else if (gap > K.bodyGap && gap <= K.engageGap) {
-      startWindup(S);
+    } else {
+      const chaseSpeed = gapBefore < 0
+        ? S.player.speed * K.aheadChaseFrac
+        : T.chaseSpeed + Math.max(0, S.player.speed - CFG.player.speedBase);
+      T.x += chaseSpeed * FIXED_DT;
+      const gap = gapOf(S);
+      if (gap >= 0 && gap <= K.bodyGap) {
+        startOvertake(S);
+      } else if (gap > K.bodyGap && gap <= K.engageGap) {
+        startWindup(S);
+      }
     }
   } else if (T.state === 'overtake') {
     T.x += K.overtakeSpeed * FIXED_DT;
@@ -101,6 +104,10 @@ export function updateTiger(S) {
     // windup 동안에는 현재 gap 방향으로 다가가되, A의 후퇴 속도보다 느리게 접근한다.
     const approach = T.state === 'windup' ? Math.sign(gapOf(S)) * K.approachSpeed : 0;
     T.x += (K.blockSpeed + approach) * FIXED_DT;
+    if (gapOf(S) > 0) {
+      // 속도 적분은 유지하되 후방 교전 중에는 앞발 사거리 안에서 더 붙지 않는다.
+      T.x = Math.min(T.x, S.worldX - K.standoffGap);
+    }
     T.timer -= FIXED_DT;
 
     if (T.state === 'windup' && T.timer <= 0) {
@@ -114,19 +121,17 @@ export function updateTiger(S) {
       }
       if (T.timer <= 0) { T.state = 'recover'; T.timer = K.recover; }
     } else if (T.state === 'recover' && T.timer <= 0) {
-      T.state = 'cooldown'; T.timer = K.cooldown;
+      T.state = 'cooldown';
+      T.timer = gapOf(S) > 0 ? K.cooldownRear : K.cooldown;
     } else if (T.state === 'cooldown' && T.timer <= 0) {
-      if (Math.abs(gapOf(S)) > K.disengageGap) {
+      if (gapOf(S) > 0 && S.player.speed < T.chaseSpeed) {
+        startOvertake(S);
+      } else if (Math.abs(gapOf(S)) > K.disengageGap) {
         T.state = 'chase';
       } else {
         startWindup(S);
       }
     }
-  }
-
-  // 접근 적분이나 발톱 넉백으로 이번 프레임에 접촉선을 넘은 경우도 놓치지 않는다.
-  if (rearEngagement && T.state !== 'overtake' && gapOf(S) <= K.bodyGap) {
-    startOvertake(S);
   }
 
   blockPlayerBody(S);

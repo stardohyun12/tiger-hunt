@@ -36,11 +36,12 @@ export const CFG = {
     overtakeSpeed: 430,
     blockSpeed: 250,
     approachSpeed: 115,
-    aheadChaseMul: 0.7,
+    aheadChaseFrac: 0.7,
     hp: 110, hpPerWave: 60,
     gapStart: 380, gapMax: 620,
     engageGap: 175,         // 후방에서 앞발 공격을 예고하기 시작하는 거리
     disengageGap: 255,      // 이보다 멀어지면 다시 추격
+    standoffGap: 115,       // 후방 교전 중 앞발 사거리를 유지하는 최소 거리
     blockGap: 210,
     bodyGap: 95,
     turnTime: 0.35,
@@ -48,10 +49,12 @@ export const CFG = {
     swing: 0.16,            // 판정 프레임
     recover: 0.75,          // 빈틈 (피해 배율 적용 구간)
     cooldown: 0.40,
+    cooldownRear: 12,       // 후방 연타 간격 — 무입력 생존 시간을 35~60초로 유지
     reach: 195,
     overtakeDmgMul: 1.5,
     recoverDmgMul: 2.0,
-    clawKnockback: 130
+    clawKnockback: 130,
+    clawKnockbackRear: 45
   },
 
   aim: {
