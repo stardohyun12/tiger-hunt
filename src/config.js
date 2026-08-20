@@ -107,10 +107,21 @@ export const CFG = {
     blinkFps: 22,
     scene: {
       overscan: 42,
-      farStep: 320, farSpeed: 0.12, farBaseY: 363, farBlockW: 40,
-      farHeights: [42, 78, 126, 93, 150, 102, 66, 39],
-      midStep: 240, midSpeed: 0.28, midBaseY: 393, midBlockW: 30,
-      midHeights: [27, 54, 84, 105, 72, 48, 30, 18],
+      ridgeFloor: 0,
+      farStep: 1200, farSpeed: 0.12, farBaseY: 390, farBlockW: 6,
+      farRidges: [
+        { x: 0, h: 56, spread: 3400 },
+        { x: 300, h: 82, spread: 2400 },
+        { x: 620, h: 60, spread: 3800 },
+        { x: 940, h: 86, spread: 2700 }
+      ],
+      midStep: 960, midSpeed: 0.28, midBaseY: 420, midBlockW: 6,
+      midRidges: [
+        { x: 0, h: 82, spread: 1800 },
+        { x: 250, h: 124, spread: 1400 },
+        { x: 520, h: 92, spread: 2200 },
+        { x: 765, h: 132, spread: 1550 }
+      ],
       cloudStep: 360, cloudSpeed: 0.06, cloudY: 84,
       cloudBlocks: [0, 15, 9, 24, 3, 30, 12, 21],
       groundLineH: 6,

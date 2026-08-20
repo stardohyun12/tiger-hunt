@@ -75,13 +75,23 @@ function blitAtBase(ctx, name, centerX, baseY, options) {
   blit(ctx, sprite, centerX - width / 2, baseY - height, options);
 }
 
-function drawSteppedLayer(ctx, S, layer, color) {
+function ridgeHeightAt(center, layer) {
+  let height = layer.floor;
+  for (const peak of layer.ridges) {
+    const distance = Math.abs(center - peak.x);
+    const dx = Math.min(distance, layer.step - distance);
+    height = Math.max(height, peak.h - (dx * dx) / peak.spread);
+  }
+  return snap(height);
+}
+
+function drawRidgeLayer(ctx, S, layer, color) {
   const offset = scrollOffset(S.worldX * layer.speed, layer.step);
   ctx.fillStyle = color;
   for (let x = offset - layer.step; x < V.w + layer.step; x += layer.step) {
-    for (let index = 0; index < layer.heights.length; index++) {
-      const height = layer.heights[index];
-      ctx.fillRect(snap(x + index * layer.blockW), snap(layer.baseY - height),
+    for (let column = 0; column < layer.step; column += layer.blockW) {
+      const height = ridgeHeightAt(column + layer.blockW / 2, layer);
+      ctx.fillRect(snap(x + column), snap(layer.baseY - height),
         layer.blockW, snap(height));
     }
   }
@@ -103,13 +113,13 @@ function drawBackground(ctx, S) {
   ctx.fillStyle = C.paper;
   ctx.fillRect(-P.overscan, -P.overscan, V.w + P.overscan * 2, V.h + P.overscan * 2);
   drawClouds(ctx, S);
-  drawSteppedLayer(ctx, S, {
+  drawRidgeLayer(ctx, S, {
     speed: P.farSpeed, step: P.farStep, baseY: P.farBaseY,
-    blockW: P.farBlockW, heights: P.farHeights
+    blockW: P.farBlockW, floor: P.ridgeFloor, ridges: P.farRidges
   }, C.inkFar);
-  drawSteppedLayer(ctx, S, {
+  drawRidgeLayer(ctx, S, {
     speed: P.midSpeed, step: P.midStep, baseY: P.midBaseY,
-    blockW: P.midBlockW, heights: P.midHeights
+    blockW: P.midBlockW, floor: P.ridgeFloor, ridges: P.midRidges
   }, C.inkMid);
   ctx.fillStyle = C.paper;
   ctx.fillRect(-P.overscan, V.groundY, V.w + P.overscan * 2, V.h - V.groundY + P.overscan);
