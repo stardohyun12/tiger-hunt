@@ -235,12 +235,16 @@ function drawTelegraphMarker(ctx, S) {
 function drawBow(ctx, S, flash) {
   const K = A.bow;
   const bow = bowScreen(S);
-  const direction = S.aiming ? aimVector(S, S.aimX, S.aimY) : { x: 1, y: 0 };
+  const direction = S.aiming
+    ? aimVector(S, S.aimX, S.aimY)
+    : { x: K.restX, y: K.restY };
   ctx.save();
   ctx.translate(bow.x, bow.y);
   ctx.rotate(Math.atan2(direction.y, direction.x));
   ctx.strokeStyle = flash ? C.vermilion : C.ink;
   ctx.lineWidth = K.lineW;
+  ctx.lineCap = 'square';
+  ctx.lineJoin = 'miter';
   ctx.beginPath();
   ctx.moveTo(0, -K.halfH);
   ctx.quadraticCurveTo(K.curve, 0, 0, K.halfH);
@@ -418,9 +422,8 @@ function drawControl(ctx, key, label, x, y) {
 
 function drawTouchControls(ctx) {
   const lines = [
-    '좌·중앙 화면을 눌러 조준 → 홀드하면 차지 → 떼면 발사',
-    '우하단 4버튼: 앞 · 뒤 · 점프 · 수그림',
-    '화면 아무 데나 탭하면 시작'
+    '좌하단 뒤·앞 · 우하단 점프·수그리기',
+    '가운데를 눌러 조준 → 홀드 차지 → 떼면 발사'
   ];
   ctx.textAlign = 'center';
   ctx.fillStyle = C.ink;
