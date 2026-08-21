@@ -34,6 +34,7 @@ export function updatePlayer(S, input) {
   if (p.stumble > 0) mul *= K.stumbleMul;
 
   p.speed = base * mul;
+  if (p.boost > 0) p.speed = Math.max(p.speed, CFG.target.dashSpeed);
   S.worldX += p.speed * FIXED_DT;
 
   if ((input.k & INPUT_KEY.W) && p.grounded && !p.crouch) {
@@ -47,4 +48,5 @@ export function updatePlayer(S, input) {
 
   if (p.stumble > 0) p.stumble -= FIXED_DT;
   if (p.invuln > 0) p.invuln -= FIXED_DT;
+  if (p.boost > 0) p.boost = Math.max(0, p.boost - FIXED_DT);
 }

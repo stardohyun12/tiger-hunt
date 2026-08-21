@@ -32,6 +32,7 @@ export const CFG = {
   // 호랑이. 평소에는 뒤에서 교전하고, 실제로 따라잡았을 때만 추월해 앞을 막는다.
   tiger: {
     w: 120, h: 74,
+    enterX: 2500, enterAlertTime: 1.5,
     chaseSpeed: 245, chaseSpeedPerWave: 14,
     overtakeSpeed: 430,
     blockSpeed: 250,
@@ -67,11 +68,23 @@ export const CFG = {
   },
 
   score: {
-    distancePx: 10,
+    distancePx: 30,
     meterPx: 50,
     hit: 25,
     strongHit: 60,
-    kill: 500
+    kill: 500,
+    targetHit: 80,
+    targetComboMax: 5
+  },
+
+  target: {
+    firstX: 720,
+    gapMin: 620, gapMax: 920,
+    w: 54, h: 54,
+    centerYs: [272, 326, 380],
+    missBehind: 70,
+    dashSpeed: 430, dashTime: 0.65,
+    feedbackTime: 0.45
   },
 
   touch: {
@@ -156,9 +169,22 @@ export const CFG = {
     arrow: { cells: 7, cell: 3, spacing: 3 },
     aim: { step: 0.052, dots: 14, dot: 5, fade: 0.62, markR: 9, markArm: 5, lineW: 2 },
     tigerBar: { yGap: 18, w: 120, h: 7, border: 2 },
+    target: {
+      poleW: 3, offscreen: 108,
+      scoreRise: 36, scoreGap: 38,
+      dustSize: 6,
+      dustOffsets: [[-24, -6], [-12, 12], [12, -12], [24, 6]],
+      fontScore: '900 18px system-ui'
+    },
+    tigerEnter: {
+      x: 250, y: 102, w: 460, h: 58,
+      textY: 139, border: 4,
+      font: '900 22px system-ui', tracking: '3px'
+    },
     hud: {
       heartX: 24, heartY: 21, heartGap: 39, heartPx: 3,
       scoreX: 28, scoreY: 48, scoreSubY: 70,
+      comboX: 28, comboY: 96,
       chargeW: 280, chargeH: 14, chargeY: 38, chargeLabelGap: 8,
       panelAlpha: 0.82, paperAlpha: 0.97, washAlpha: 0.10,
       fontScore: '900 36px system-ui', fontSmall: '800 14px system-ui',
@@ -503,6 +529,23 @@ export const CFG = {
         '..................XX',
         '..................XX'
       ],
+      targetFace: [
+        '....XXXXXXX....',
+        '..XXXXXXXXXXX..',
+        '.XXXoooooooXXX.',
+        'XXoooooooooooXX',
+        'XXoooXXXXXoooXX',
+        'XXooXXoooXXooXX',
+        'XXooXoooooXooXX',
+        'XXooXooXooXooXX',
+        'XXooXoooooXooXX',
+        'XXooXXoooXXooXX',
+        'XXoooXXXXXoooXX',
+        'XXoooooooooooXX',
+        '.XXXoooooooXXX.',
+        '..XXXXXXXXXXX..',
+        '....XXXXXXX....'
+      ],
       heartFull: [
         '.XX.XX.',
         'XXXXXXX',
@@ -526,6 +569,8 @@ export const CFG = {
   fx: {
     hitWeak:   [0.04, 0.18, 0],
     hitStrong: [0.09, 0.40, 0],
+    targetHit: [0.03, 0.12, 0],
+    tigerEnter:[0.08, 0.72, 0],
     kill:      [0.18, 0.70, 0],
     stumble:   [0.03, 0.22, 0],
     claw:      [0.12, 0.60, 0],

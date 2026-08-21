@@ -7,6 +7,7 @@
 
 import { CFG, FIXED_DT } from './config.js';
 import { damageTiger } from './tiger.js';
+import { breakTargetCombo, hitTarget } from './target.js';
 
 export function bowScreen(S) {
   return {
@@ -41,14 +42,28 @@ export function fireArrow(S, input) {
 export function updateArrows(S) {
   const T = S.tiger;
   for (const a of S.arrows) {
+    let hit = false;
     a.vy += CFG.aim.gravity * FIXED_DT;
     a.x += a.vx * FIXED_DT; a.y += a.vy * FIXED_DT;
     a.life -= FIXED_DT;
 
+    for (const target of S.targets) {
+      if (target.hit) continue;
+      const inTargetX = a.x > target.x - CFG.target.w / 2 &&
+        a.x < target.x + CFG.target.w / 2;
+      const inTargetY = a.y > target.y - CFG.target.h / 2 &&
+        a.y < target.y + CFG.target.h / 2;
+      if (!inTargetX || !inTargetY) continue;
+      a.life = 0;
+      hit = hitTarget(S, target);
+      break;
+    }
+
     const inX = a.x > T.x - CFG.tiger.w / 2 && a.x < T.x + CFG.tiger.w / 2;
     const inY = a.y > CFG.view.groundY - CFG.tiger.h && a.y < CFG.view.groundY;
-    if (inX && inY) {
+    if (!hit && T.state !== 'offstage' && inX && inY) {
       a.life = 0;
+      hit = true;
       const k = a.charge;
       damageTiger(S,
         CFG.aim.dmgMin + (CFG.aim.dmgMax - CFG.aim.dmgMin) * k,
@@ -56,6 +71,7 @@ export function updateArrows(S) {
         k > CFG.aim.strongCharge);
     }
     if (a.y > CFG.view.groundY) a.life = 0;
+    if (a.life <= 0 && !hit) breakTargetCombo(S);
   }
   S.arrows = S.arrows.filter(a => a.life > 0);
 }

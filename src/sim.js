@@ -1,7 +1,7 @@
 // CODEMAP
 // role : 한 고정 논리 프레임의 sim 배선
 // 핵심 : updateSimulation()
-// 의존 : config, player, tiger, arrow, obstacle
+// 의존 : config, player, tiger, arrow, obstacle, target
 // 연관 : main과 replay가 반드시 이 동일한 진입점을 사용한다
 // 주의 : 이벤트는 매 프레임 비우며, hitstop은 입력 반영 뒤 월드 update만 멈춘다.
 
@@ -10,6 +10,7 @@ import { updatePlayer } from './player.js';
 import { updateTiger } from './tiger.js';
 import { fireArrow, startCharge, updateArrows } from './arrow.js';
 import { updateObstacles } from './obstacle.js';
+import { updateTargets } from './target.js';
 
 function updateDistanceScore(S) {
   const points = Math.floor(S.worldX / CFG.score.distancePx);
@@ -37,6 +38,7 @@ export function updateSimulation(S, input) {
   updatePlayer(S, input);
   updateDistanceScore(S);
   updateObstacles(S);
+  updateTargets(S);
   updateTiger(S);
   updateArrows(S);
   if (S.phase === 'over') { S.aiming = false; S.charge = 0; }

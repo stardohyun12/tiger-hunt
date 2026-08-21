@@ -9,8 +9,8 @@
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 
 const ORDER = [
-  'config', 'rng', 'state', 'viewport', 'input', 'player', 'tiger', 'arrow',
-  'obstacle', 'sim', 'replay', 'fx', 'render', 'main'
+  'config', 'rng', 'state', 'viewport', 'input', 'player', 'tiger', 'target',
+  'arrow', 'obstacle', 'sim', 'replay', 'fx', 'render', 'main'
 ];
 
 const body = ORDER.map(name => {

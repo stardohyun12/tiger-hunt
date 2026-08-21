@@ -128,7 +128,7 @@ function stripCommentsAndStrings(source) {
 test('sim 소스에는 비결정적 API와 금지 수학 연산이 없다', () => {
   const files = [
     'config.js', 'state.js', 'player.js', 'tiger.js', 'arrow.js',
-    'obstacle.js', 'rng.js', 'sim.js', 'replay.js'
+    'obstacle.js', 'target.js', 'rng.js', 'sim.js', 'replay.js'
   ];
   const patterns = [
     ['Math.random', /\bMath\.random\b/g],

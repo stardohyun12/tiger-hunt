@@ -74,6 +74,16 @@ function blockPlayerBody(S) {
 export function updateTiger(S) {
   const T = S.tiger, K = CFG.tiger;
 
+  if (T.state === 'offstage') {
+    if (S.worldX < K.enterX) return;
+    T.x = S.worldX - K.gapStart;
+    T.state = 'chase';
+    S.tigerAlert = K.enterAlertTime;
+    S.events.push({ kind: 'tigerEnter' });
+  }
+
+  if (S.tigerAlert > 0) S.tigerAlert = Math.max(0, S.tigerAlert - FIXED_DT);
+
   if (T.state === 'chase') {
     const gapBefore = gapOf(S);
     if (gapBefore >= 0 && gapBefore <= K.bodyGap) {

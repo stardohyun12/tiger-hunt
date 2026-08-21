@@ -8,13 +8,13 @@
 import { CFG } from './config.js';
 import { rngFromSeed } from './rng.js';
 
-export function newTiger(wave) {
+export function newTiger(wave, state = 'chase') {
   const hp = CFG.tiger.hp + CFG.tiger.hpPerWave * wave;
   return {
     hpMax: hp, hp,
     x: 0,
     chaseSpeed: CFG.tiger.chaseSpeed + CFG.tiger.chaseSpeedPerWave * wave,
-    state: 'chase',   // chase | overtake | brace | windup | swing | recover | cooldown
+    state,   // offstage | chase | overtake | brace | windup | swing | recover | cooldown
     timer: 0,
     zone: 'high',     // high | low  — 이번 스윙이 노리는 높이
     swung: false
@@ -23,7 +23,7 @@ export function newTiger(wave) {
 
 export function createState(seed) {
   const normalizedSeed = seed >>> 0;
-  const t = newTiger(0);
+  const t = newTiger(0, 'offstage');
   const S = {
     seed: normalizedSeed,
     rng: rngFromSeed(normalizedSeed),
@@ -34,12 +34,15 @@ export function createState(seed) {
 
     player: {
       y: 0, vy: 0, grounded: true, crouch: false,
-      hp: CFG.player.hp, invuln: 0, stumble: 0, speed: CFG.player.speedBase
+      hp: CFG.player.hp, invuln: 0, stumble: 0, boost: 0, speed: CFG.player.speedBase
     },
     tiger: t,
+    tigerAlert: 0,
 
     aiming: false, charge: 0, aimX: 300, aimY: 300,
-    arrows: [], obstacles: [], nextObsX: 1000,
+    arrows: [], obstacles: [], nextObsX: CFG.tiger.enterX + CFG.view.w,
+    targets: [], nextTargetX: CFG.target.firstX, lastTargetTier: -1,
+    combo: 0, bestCombo: 0, targetHits: 0, targetBursts: [],
 
     hitstop: 0, trauma: 0,
     flash: { tigerUntil: 0, playerUntil: 0 },

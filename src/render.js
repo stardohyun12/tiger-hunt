@@ -1,6 +1,6 @@
 // CODEMAP
 // role : 민화 4색 픽셀 렌더링
-// 핵심 : render(), blit(), drawBackground(), drawPlayer(), drawTiger()
+// 핵심 : render(), blit(), drawBackground(), drawPlayer(), drawTiger(), drawTargets()
 // 의존 : config, state, fx, arrow, input(표현 상태 읽기)
 // 연관 : sim 상태를 문자열 스프라이트와 격자 정렬 도형으로만 표현한다
 // 주의 : 상태를 바꾸지 말 것. 반복 애니메이션은 월드 이동 거리에서만 유도한다.
@@ -175,6 +175,50 @@ function drawObstacles(ctx, S) {
     } else {
       blitAtBase(ctx, 'branch', sx, V.groundY - CFG.obs.branchClearY, { color: C.ink });
     }
+  }
+}
+
+function drawTargets(ctx, S) {
+  const K = A.target;
+  const sprite = SPRITES.targetFace;
+  const spriteW = sprite[0].length * A.px;
+  const spriteH = sprite.length * A.px;
+  ctx.fillStyle = C.ink;
+  for (const target of S.targets) {
+    if (target.hit) continue;
+    const sx = V.playerScreenX + target.x - S.worldX;
+    if (sx < -K.offscreen || sx > V.w + K.offscreen) continue;
+    const left = sx - spriteW / 2;
+    const top = target.y - spriteH / 2;
+    ctx.fillRect(snap(sx - K.poleW / 2), snap(target.y + spriteH / 2),
+      K.poleW, snap(V.groundY - target.y - spriteH / 2));
+    blit(ctx, sprite, left, top, { color: C.ink, alt: C.paper });
+  }
+}
+
+function drawTargetBursts(ctx, S) {
+  const K = A.target;
+  const sprite = SPRITES.targetFace;
+  const spriteW = sprite[0].length * A.px;
+  const spriteH = sprite.length * A.px;
+  for (const burst of S.targetBursts) {
+    const sx = V.playerScreenX + burst.x - S.worldX;
+    const progress = clamp01(1 - burst.life / CFG.target.feedbackTime);
+    ctx.save();
+    ctx.globalAlpha = clamp01(burst.life / CFG.target.feedbackTime);
+    blit(ctx, sprite, sx - spriteW / 2, burst.y - spriteH / 2, {
+      color: C.vermilion,
+      alt: C.paper
+    });
+    ctx.fillStyle = C.vermilion;
+    for (const offset of K.dustOffsets) {
+      ctx.fillRect(snap(sx + offset[0]), snap(burst.y + offset[1]), K.dustSize, K.dustSize);
+    }
+    ctx.textAlign = 'center';
+    setFont(ctx, K.fontScore, A.hud.tracking);
+    ctx.fillText('+' + burst.points + ' · ' + burst.combo + '연속', sx,
+      burst.y - K.scoreGap - progress * K.scoreRise);
+    ctx.restore();
   }
 }
 
@@ -385,6 +429,13 @@ function drawHud(ctx, S) {
   ctx.fillText(String(S.score), V.w - H.scoreX, H.scoreY);
   setFont(ctx, H.fontSmall, H.tracking);
   ctx.fillText('점수 · 처치 ' + S.kills, V.w - H.scoreX, H.scoreSubY);
+  if (S.combo > 0) {
+    const multiplier = Math.min(S.combo, CFG.score.targetComboMax);
+    ctx.textAlign = 'left';
+    ctx.fillStyle = C.ink;
+    setFont(ctx, H.fontSmall, H.tracking);
+    ctx.fillText(S.combo + '연속 · 과녁 x' + multiplier, H.comboX, H.comboY);
+  }
   if (!S.aiming) return;
   const charge = Math.min(S.charge / CFG.aim.chargeTime, 1);
   const x = (V.w - H.chargeW) / 2;
@@ -399,6 +450,22 @@ function drawHud(ctx, S) {
   ctx.textAlign = 'center';
   setFont(ctx, H.fontCharge, H.tracking);
   ctx.fillText('시위 당기기', V.w / 2, y - H.chargeLabelGap);
+}
+
+function drawTigerEnter(ctx, S) {
+  if (S.tigerAlert <= 0) return;
+  const K = A.tigerEnter;
+  ctx.save();
+  ctx.fillStyle = C.vermilion;
+  ctx.fillRect(K.x, K.y, K.w, K.h);
+  ctx.strokeStyle = C.ink;
+  ctx.lineWidth = K.border;
+  ctx.strokeRect(K.x, K.y, K.w, K.h);
+  ctx.fillStyle = C.paper;
+  ctx.textAlign = 'center';
+  setFont(ctx, K.font, K.tracking);
+  ctx.fillText('강무장에 진짜 호랑이가 들이닥쳤다', V.w / 2, K.textY);
+  ctx.restore();
 }
 
 function drawControl(ctx, key, label, x, y) {
@@ -482,7 +549,7 @@ function drawTitleOverlay(ctx) {
   setFont(ctx, O.fontTitle, O.tracking);
   ctx.fillText('《호랑이 추격》', V.w / 2, O.titleY);
   setFont(ctx, O.fontSubtitle, O.tracking);
-  ctx.fillText('활 하나로 호랑이를 따돌려라', V.w / 2, O.subtitleY);
+  ctx.fillText('강무 한복판, 진짜 호랑이가 들이닥쳤다', V.w / 2, O.subtitleY);
   ctx.fillStyle = C.vermilion;
   ctx.fillRect(O.warningX, O.warningY, O.warningW, O.warningH);
   ctx.fillStyle = C.paper;
@@ -506,7 +573,7 @@ function drawTitleOverlay(ctx) {
   ctx.fillRect(O.actionX, O.actionY, O.actionW, O.actionH);
   ctx.fillStyle = C.paper;
   setFont(ctx, O.fontAction, O.tracking);
-  ctx.fillText(touchActive() ? '탭 — 추격 시작' : 'Space — 추격 시작', V.w / 2, O.actionTextY);
+  ctx.fillText(touchActive() ? '탭 — 강무 시작' : 'Space — 강무 시작', V.w / 2, O.actionTextY);
   ctx.restore();
 }
 
@@ -564,18 +631,23 @@ export function render(ctx, S) {
   ctx.translate(snap(shake.x), snap(shake.y));
   drawBackground(ctx, S);
   drawGroundMarkers(ctx, S);
+  drawTargets(ctx, S);
   drawObstacles(ctx, S);
   drawTelegraph(ctx, S, tigerX, gap);
-  drawTiger(ctx, S, tigerX, gap, tigerFlash);
-  bar(ctx, tigerX - A.tigerBar.w / 2,
-    V.groundY - CFG.tiger.h - A.tigerBar.yGap,
-    A.tigerBar.w, A.tigerBar.h, S.tiger.hp / S.tiger.hpMax);
+  if (S.tiger.state !== 'offstage') {
+    drawTiger(ctx, S, tigerX, gap, tigerFlash);
+    bar(ctx, tigerX - A.tigerBar.w / 2,
+      V.groundY - CFG.tiger.h - A.tigerBar.yGap,
+      A.tigerBar.w, A.tigerBar.h, S.tiger.hp / S.tiger.hpMax);
+  }
   drawPlayer(ctx, S, playerFlash);
   drawTelegraphMarker(ctx, S);
   if (S.aiming) drawAimPreview(ctx, S);
   drawArrows(ctx, S);
+  drawTargetBursts(ctx, S);
   ctx.restore();
   drawTouchPads(ctx);
+  drawTigerEnter(ctx, S);
   drawHud(ctx, S);
   drawOverlay(ctx, S);
 }
