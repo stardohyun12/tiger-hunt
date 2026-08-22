@@ -16,7 +16,11 @@ export function bowScreen(S) {
   };
 }
 
-export function startCharge(S) { S.aiming = true; S.charge = 0; }
+export function startCharge(S) {
+  if (S.nock > 0) return;
+  S.aiming = true;
+  S.charge = 0;
+}
 
 export function aimVector(S, aimX, aimY) {
   const b = bowScreen(S);
@@ -27,6 +31,12 @@ export function aimVector(S, aimX, aimY) {
 
 export function fireArrow(S, input) {
   if (!S.aiming) return;
+  if (S.charge < CFG.aim.minCharge) {
+    S.aiming = false;
+    S.charge = 0;
+    S.nockFail = CFG.aim.failTime;
+    return;
+  }
   const t = Math.min(S.charge / CFG.aim.chargeTime, 1);
   const d = aimVector(S, input.ax, input.ay);
   const b = bowScreen(S);
@@ -37,6 +47,8 @@ export function fireArrow(S, input) {
     charge: t, life: CFG.aim.life
   });
   S.aiming = false; S.charge = 0;
+  S.nock = CFG.aim.nockTime;
+  S.nockFail = 0;
 }
 
 export function updateArrows(S) {

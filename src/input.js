@@ -4,7 +4,7 @@
 // 의존 : config(키 비트), viewport(좌표 변환)
 // 연관 : main이 논리 프레임마다 정수 입력 하나를 꺼내 sim에 전달
 // 주의 : 입력은 여기서 '수집·양자화'만 한다. 게임 판단은 sim에서.
-//        W=점프 S=수그리기 A=뒤로 D=앞으로 / 포인터=조준, 홀드=차지
+//        Space/W/↑=점프 S/↓=수그리기 A/←=뒤로 D/→=앞으로 / 포인터=조준, 홀드=차지
 
 import { CFG, INPUT_KEY } from './config.js';
 import { toView } from './viewport.js';
@@ -59,7 +59,8 @@ function finishPointer(e) {
 
 export function bindInput(_canvas, hooks) {
   addEventListener('keydown', (e) => {
-    if (['KeyW','KeyA','KeyS','KeyD','Space'].includes(e.code)) e.preventDefault();
+    if (['KeyW','KeyA','KeyS','KeyD','Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight']
+      .includes(e.code)) e.preventDefault();
     if (e.repeat) return;
     if (hooks.onAnyKey && hooks.onAnyKey(e) === true) return;
     keys.add(e.code);
@@ -133,12 +134,16 @@ export function touchKeyDown(key) {
   return false;
 }
 
+export function clearKeys() {
+  keys.clear();
+}
+
 export function sampleInput(frame) {
   let k = 0;
-  if (keys.has('KeyW')) k |= INPUT_KEY.W;
-  if (keys.has('KeyS')) k |= INPUT_KEY.S;
-  if (keys.has('KeyA')) k |= INPUT_KEY.A;
-  if (keys.has('KeyD')) k |= INPUT_KEY.D;
+  if (keys.has('Space') || keys.has('KeyW') || keys.has('ArrowUp')) k |= INPUT_KEY.W;
+  if (keys.has('KeyS') || keys.has('ArrowDown')) k |= INPUT_KEY.S;
+  if (keys.has('KeyA') || keys.has('ArrowLeft')) k |= INPUT_KEY.A;
+  if (keys.has('KeyD') || keys.has('ArrowRight')) k |= INPUT_KEY.D;
   for (const pad of CFG.touch.pads) {
     if (touchKeyDown(pad.key)) k |= INPUT_KEY[pad.key];
   }

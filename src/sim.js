@@ -41,7 +41,7 @@ export function updateSimulation(S, input) {
   updateTargets(S);
   updateTiger(S);
   updateArrows(S);
-  if (S.phase === 'over') { S.aiming = false; S.charge = 0; }
+  if (S.phase === 'over') { S.aiming = false; S.charge = 0; S.nock = 0; }
 
   // hitstop은 gameplay 시간축에 영향을 주므로 sim이 적용한다. trauma·진동은 main의 fx 처리 몫이다.
   for (const event of S.events) {

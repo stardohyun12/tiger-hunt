@@ -63,12 +63,27 @@ function startOvertake(S) {
 
 function blockPlayerBody(S) {
   const T = S.tiger;
-  if (T.state === 'chase' || T.state === 'overtake') return;
+  const p = S.player;
+  if (T.state === 'chase' || T.state === 'overtake') {
+    p.bodyBlocked = false;
+    return;
+  }
   const gap = gapOf(S);
-  if (gap >= 0 || Math.abs(gap) >= CFG.tiger.bodyGap) return;
+  if (gap >= 0 || Math.abs(gap) >= CFG.tiger.bodyGap) {
+    p.bodyBlocked = false;
+    return;
+  }
   S.worldX = T.x - CFG.tiger.bodyGap;
-  S.player.stumble = CFG.player.stumbleTime;
-  S.events.push({ kind: 'stumble' });
+  if (!p.bodyBlocked) {
+    p.stumble = CFG.player.stumbleTime;
+    S.events.push({ kind: 'stumble' });
+  }
+  p.bodyBlocked = true;
+}
+
+function engagementSpeed(S) {
+  // gap<0이면 호랑이가 앞이므로 상대속도를 음수로 만들어 플레이어 쪽(뒤)으로 붙는다.
+  return S.player.speed + Math.sign(gapOf(S)) * CFG.tiger.approachSpeed;
 }
 
 export function updateTiger(S) {
@@ -94,7 +109,9 @@ export function updateTiger(S) {
         : T.chaseSpeed + Math.max(0, S.player.speed - CFG.player.speedBase);
       T.x += chaseSpeed * FIXED_DT;
       const gap = gapOf(S);
-      if (gap >= 0 && gap <= K.bodyGap) {
+      if (gap < 0 && Math.abs(gap) <= K.engageGap) {
+        startWindup(S);
+      } else if (gap >= 0 && gap <= K.bodyGap) {
         startOvertake(S);
       } else if (gap > K.bodyGap && gap <= K.engageGap) {
         startWindup(S);
@@ -106,14 +123,14 @@ export function updateTiger(S) {
       T.state = 'brace'; T.timer = K.turnTime;
     }
   } else if (T.state === 'brace') {
-    const turn = Math.max(0, T.timer / K.turnTime);
-    T.x += (K.blockSpeed + (K.overtakeSpeed - K.blockSpeed) * turn) * FIXED_DT;
+    T.x += engagementSpeed(S) * FIXED_DT;
     T.timer -= FIXED_DT;
-    if (T.timer <= 0) startWindup(S);
+    if (T.timer <= 0) {
+      if (Math.abs(gapOf(S)) > K.engageGap) T.state = 'chase';
+      else startWindup(S);
+    }
   } else {
-    // windup 동안에는 현재 gap 방향으로 다가가되, A의 후퇴 속도보다 느리게 접근한다.
-    const approach = T.state === 'windup' ? Math.sign(gapOf(S)) * K.approachSpeed : 0;
-    T.x += (K.blockSpeed + approach) * FIXED_DT;
+    T.x += engagementSpeed(S) * FIXED_DT;
     if (gapOf(S) > 0) {
       // 속도 적분은 유지하되 후방 교전 중에는 앞발 사거리 안에서 더 붙지 않는다.
       T.x = Math.min(T.x, S.worldX - K.standoffGap);

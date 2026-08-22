@@ -8,7 +8,7 @@
 import { CFG, FIXED_DT, FIXED_STEPS_MAX } from './config.js';
 import { createState } from './state.js';
 import { initViewport } from './viewport.js';
-import { bindInput, sampleInput } from './input.js';
+import { bindInput, clearKeys, sampleInput } from './input.js';
 import { updateSimulation } from './sim.js';
 import { record } from './replay.js';
 import { decayFx, triggerFx } from './fx.js';
@@ -55,6 +55,7 @@ function resetState(phase) {
 function restartIfNeeded() {
   if (S.phase === 'play') return false;
   resetState('play');
+  clearKeys();
   return true;
 }
 

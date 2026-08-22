@@ -31,6 +31,7 @@ export function updatePlayer(S, input) {
 
   let mul = 1;
   if (S.aiming) mul *= K.aimMul;
+  if (S.nock > 0) mul *= CFG.aim.nockMul;
   if (p.stumble > 0) mul *= K.stumbleMul;
 
   p.speed = base * mul;
@@ -49,4 +50,6 @@ export function updatePlayer(S, input) {
   if (p.stumble > 0) p.stumble -= FIXED_DT;
   if (p.invuln > 0) p.invuln -= FIXED_DT;
   if (p.boost > 0) p.boost = Math.max(0, p.boost - FIXED_DT);
+  if (S.nock > 0) S.nock = Math.max(0, S.nock - FIXED_DT);
+  if (S.nockFail > 0) S.nockFail = Math.max(0, S.nockFail - FIXED_DT);
 }

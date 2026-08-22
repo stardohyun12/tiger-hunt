@@ -34,12 +34,13 @@ export function createState(seed) {
 
     player: {
       y: 0, vy: 0, grounded: true, crouch: false,
-      hp: CFG.player.hp, invuln: 0, stumble: 0, boost: 0, speed: CFG.player.speedBase
+      hp: CFG.player.hp, invuln: 0, stumble: 0, boost: 0,
+      bodyBlocked: false, speed: CFG.player.speedBase
     },
     tiger: t,
     tigerAlert: 0,
 
-    aiming: false, charge: 0, aimX: 300, aimY: 300,
+    aiming: false, charge: 0, nock: 0, nockFail: 0, aimX: 300, aimY: 300,
     arrows: [], obstacles: [], nextObsX: CFG.tiger.enterX + CFG.view.w,
     targets: [], nextTargetX: CFG.target.firstX, lastTargetTier: -1,
     combo: 0, bestCombo: 0, targetHits: 0, targetBursts: [],

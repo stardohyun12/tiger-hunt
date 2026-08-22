@@ -35,7 +35,6 @@ export const CFG = {
     enterX: 2500, enterAlertTime: 1.5,
     chaseSpeed: 245, chaseSpeedPerWave: 14,
     overtakeSpeed: 430,
-    blockSpeed: 250,
     approachSpeed: 115,
     aheadChaseFrac: 0.7,
     hp: 110, hpPerWave: 60,
@@ -60,6 +59,10 @@ export const CFG = {
 
   aim: {
     chargeTime: 1.0,
+    minCharge: 0.25,
+    nockTime: 0.45,
+    nockMul: 0.75,
+    failTime: 0.24,
     powerMin: 620, powerMax: 1180,
     dmgMin: 9, dmgMax: 32,
     pushMin: 20, pushMax: 150,
@@ -141,9 +144,24 @@ export const CFG = {
       cloudStep: 360, cloudSpeed: 0.06, cloudY: 84,
       cloudBlocks: [0, 15, 9, 24, 3, 30, 12, 21],
       groundLineH: 6,
-      groundMarkStep: 96, groundDashW: 18, groundDashH: 3,
+      groundMarkStep: 60, groundDashW: 18, groundDashH: 3,
       groundDot: 3, groundRowA: 438, groundRowB: 459
     },
+    foreground: {
+      step: 240, speed: 1.65, baseY: 438, alpha: 0.58, fastStretch: 0.8,
+      rects: [
+        [12, -12, 3, 12, 0], [18, -18, 3, 18, 0], [24, -9, 3, 9, 0],
+        [63, 6, 24, 3, 1], [96, -6, 18, 6, 0], [102, -12, 9, 6, 0],
+        [144, 18, 36, 3, 1], [201, -9, 3, 9, 0], [207, -15, 3, 15, 0]
+      ]
+    },
+    speedLines: {
+      yStep: 72, scrollSpeed: 0.34, top: 54, edgeInset: 18,
+      slowCount: 2, fastCount: 3, fastCountAdd: 5,
+      slowLength: 12, fastLength: 24, fastLengthAdd: 42,
+      h: 3, slowAlpha: 0.20, fastAlpha: 0.34
+    },
+    pose: { fastX: 2, slowX: -2 },
     shadow: {
       h: 6, playerW: 72, tigerW: 108,
       minScale: 0.42, height: 180,
@@ -152,7 +170,11 @@ export const CFG = {
     dust: {
       cycle: 42, phaseStep: 14, size: 3,
       playerX: -39, tigerX: -57,
-      spread: 12, lift: 12, alpha: 0.30
+      spread: 12, lift: 12, alpha: 0.30,
+      speedMin: 120, speedMax: 430,
+      countMin: 2, countAdd: 3,
+      spreadMinMul: 0.55, spreadAddMul: 1.05,
+      liftMinMul: 0.65, liftAddMul: 0.65
     },
     telegraph: {
       highY: 276, highH: 108,
@@ -186,6 +208,7 @@ export const CFG = {
       scoreX: 28, scoreY: 48, scoreSubY: 70,
       comboX: 28, comboY: 96,
       chargeW: 280, chargeH: 14, chargeY: 38, chargeLabelGap: 8,
+      controlsY: 528,
       panelAlpha: 0.82, paperAlpha: 0.97, washAlpha: 0.10,
       fontScore: '900 36px system-ui', fontSmall: '800 14px system-ui',
       fontCharge: '800 13px system-ui', tracking: '1.5px'
@@ -197,14 +220,15 @@ export const CFG = {
       warningW: 710, warningH: 48, warningTextY: 175,
       controlsTitleY: 225, controlLeftX: 140, controlRightX: 500,
       controlY: 242, controlGapY: 56, controlW: 320, controlH: 44,
-      keyX: 8, keyY: 7, keyW: 82, keyH: 30,
-      keyTextX: 49, keyTextY: 27, labelX: 106, labelY: 28,
+      keyX: 8, keyY: 7, keyW: 92, keyH: 30,
+      keyTextX: 54, keyTextY: 27, labelX: 116, labelY: 28,
       actionX: 280, actionY: 435, actionW: 400, actionH: 44, actionTextY: 463,
       overPanelX: 250, overPanelY: 42, overPanelW: 460, overPanelH: 456,
       overTitleY: 112, overLabelY: 149, overScoreY: 209,
       overStatLeftX: 380, overStatRightX: 580, overStatLabelY: 251, overStatY: 282,
       bestX: 310, bestY: 313, bestW: 340, bestH: 76,
       bestLabelY: 340, bestScoreY: 374,
+      overControlsY: 402,
       retryX: 330, retryY: 417, retryW: 300, retryH: 44, retryTextY: 445,
       fontTitle: '900 49px system-ui', fontSubtitle: '800 17px system-ui',
       fontWarning: '800 14px system-ui', fontControlTitle: '900 17px system-ui',

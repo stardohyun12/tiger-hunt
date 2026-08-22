@@ -137,6 +137,52 @@ function drawGroundMarkers(ctx, S) {
   }
 }
 
+function playerSpeedRatio(S) {
+  return S.player.speed / CFG.player.speedBase;
+}
+
+function drawForeground(ctx, S) {
+  const K = A.foreground;
+  const fast = Math.max(0, playerSpeedRatio(S) - 1);
+  const stretch = 1 + fast * K.fastStretch;
+  const offset = scrollOffset(S.worldX * K.speed, K.step);
+  ctx.save();
+  ctx.globalAlpha = K.alpha;
+  ctx.fillStyle = C.ink;
+  for (let x = offset - K.step; x < V.w + K.step; x += K.step) {
+    for (const rect of K.rects) {
+      const width = rect[4] ? rect[2] * stretch : rect[2];
+      ctx.fillRect(snap(x + rect[0]), snap(K.baseY + rect[1]), snap(width), rect[3]);
+    }
+  }
+  ctx.restore();
+}
+
+function drawSpeedLines(ctx, S) {
+  const K = A.speedLines;
+  const fast = clamp01((S.player.speed - CFG.player.speedBase) /
+    (CFG.player.speedFwd - CFG.player.speedBase));
+  const slow = clamp01((CFG.player.speedBase - S.player.speed) /
+    (CFG.player.speedBase - CFG.player.speedBack));
+  if (fast <= 0 && slow <= 0) return;
+  const count = fast > 0
+    ? Math.floor(K.fastCount + K.fastCountAdd * fast)
+    : Math.max(1, Math.floor(K.slowCount * slow));
+  const length = fast > 0
+    ? K.fastLength + K.fastLengthAdd * fast
+    : K.slowLength * slow;
+  const offset = scrollOffset(S.worldX * K.scrollSpeed, K.yStep);
+  ctx.save();
+  ctx.globalAlpha = fast > 0 ? K.fastAlpha : K.slowAlpha;
+  ctx.fillStyle = C.ink;
+  for (let index = 0; index < count; index++) {
+    const y = K.top + offset + index * K.yStep;
+    const x = index % 2 ? V.w - K.edgeInset - length : K.edgeInset;
+    ctx.fillRect(snap(x), snap(y), snap(length), K.h);
+  }
+  ctx.restore();
+}
+
 function drawShadow(ctx, centerX, airY, width) {
   const K = A.shadow;
   const air = clamp01(airY / K.height);
@@ -150,15 +196,19 @@ function drawShadow(ctx, centerX, airY, width) {
   ctx.restore();
 }
 
-function drawDust(ctx, distance, centerX, offsetX) {
+function drawDust(ctx, distance, centerX, offsetX, speed) {
   const K = A.dust;
+  const motion = clamp01((speed - K.speedMin) / (K.speedMax - K.speedMin));
+  const count = Math.floor(K.countMin + K.countAdd * motion);
+  const spread = K.spread * (K.spreadMinMul + K.spreadAddMul * motion);
+  const lift = K.lift * (K.liftMinMul + K.liftAddMul * motion);
   ctx.save();
   ctx.fillStyle = C.ink;
   ctx.globalAlpha = K.alpha;
-  for (let index = 0; index < 3; index++) {
+  for (let index = 0; index < count; index++) {
     const phase = (((distance + index * K.phaseStep) % K.cycle) + K.cycle) % K.cycle / K.cycle;
-    const x = centerX + offsetX - phase * K.spread - index * A.px;
-    const y = V.groundY - K.size - phase * K.lift - (index % 2) * A.px;
+    const x = centerX + offsetX - phase * spread - index * A.px;
+    const y = V.groundY - K.size - phase * lift - (index % 2) * A.px;
     ctx.fillRect(snap(x), snap(y), K.size, K.size);
   }
   ctx.restore();
@@ -308,10 +358,14 @@ function drawPlayer(ctx, S, flash) {
   const runFrame = Math.floor(S.worldX / A.stridePx) % 2;
   const name = !P.grounded ? 'deerJump' : P.crouch ? 'deerCrouch' : runFrame ? 'deerRunB' : 'deerRunA';
   drawShadow(ctx, V.playerScreenX, P.y, A.shadow.playerW);
-  if (P.grounded && P.speed > 0) drawDust(ctx, S.worldX, V.playerScreenX, A.dust.playerX);
+  if (P.grounded && P.speed > 0) {
+    drawDust(ctx, S.worldX, V.playerScreenX, A.dust.playerX, P.speed);
+  }
+  const ratio = playerSpeedRatio(S);
+  const poseX = ratio > 1 ? A.pose.fastX : ratio < 1 ? A.pose.slowX : 0;
   ctx.save();
   if (!flash && P.invuln > 0 && Math.floor(S.frame / A.flashFrames) % 2) ctx.globalAlpha = 0.32;
-  blitAtBase(ctx, name, V.playerScreenX, baseY, {
+  blitAtBase(ctx, name, V.playerScreenX + poseX, baseY, {
     color: flash ? C.vermilion : C.ink,
     alt: flash ? C.vermilion : C.ink
   });
@@ -339,7 +393,7 @@ function drawTiger(ctx, S, sx, gap, flash) {
   const flip = tigerFlip(S, gap);
   drawShadow(ctx, sx, 0, A.shadow.tigerW);
   if (S.tiger.state === 'chase' || S.tiger.state === 'overtake') {
-    drawDust(ctx, S.tiger.x, sx, flip ? -A.dust.tigerX : A.dust.tigerX);
+    drawDust(ctx, S.tiger.x, sx, flip ? -A.dust.tigerX : A.dust.tigerX, S.player.speed);
   }
   blitAtBase(ctx, name, sx, V.groundY, {
     color: flash ? C.vermilion : C.ochre,
@@ -436,20 +490,31 @@ function drawHud(ctx, S) {
     setFont(ctx, H.fontSmall, H.tracking);
     ctx.fillText(S.combo + '연속 · 과녁 x' + multiplier, H.comboX, H.comboY);
   }
-  if (!S.aiming) return;
-  const charge = Math.min(S.charge / CFG.aim.chargeTime, 1);
+  ctx.textAlign = 'center';
+  ctx.fillStyle = C.ink;
+  setFont(ctx, H.fontSmall, H.tracking);
+  ctx.fillText(touchActive()
+    ? '좌하단 뒤·앞 · 우하단 점프·수그리기 · 가운데 홀드 활'
+    : 'Space/W/↑ 점프 · S/↓ 수그리기 · A/← 뒤 · D/→ 앞 · 좌클릭 활',
+  V.w / 2, H.controlsY);
+  if (!S.aiming && S.nock <= 0 && S.nockFail <= 0) return;
+  const progress = S.aiming
+    ? Math.min(S.charge / CFG.aim.chargeTime, 1)
+    : S.nock > 0 ? S.nock / CFG.aim.nockTime : 0;
   const x = (V.w - H.chargeW) / 2;
   const y = V.h - H.chargeY;
   ctx.fillStyle = C.paper;
   ctx.fillRect(x, y, H.chargeW, H.chargeH);
-  ctx.fillStyle = C.ink;
-  ctx.fillRect(x, y, H.chargeW * charge, H.chargeH);
+  ctx.fillStyle = S.nock > 0 ? C.ochre : C.ink;
+  ctx.fillRect(x, y, H.chargeW * progress, H.chargeH);
   ctx.strokeStyle = C.ink;
   ctx.lineWidth = A.tigerBar.border;
   ctx.strokeRect(x, y, H.chargeW, H.chargeH);
   ctx.textAlign = 'center';
+  ctx.fillStyle = C.ink;
   setFont(ctx, H.fontCharge, H.tracking);
-  ctx.fillText('시위 당기기', V.w / 2, y - H.chargeLabelGap);
+  const label = S.aiming ? '시위 당기기' : S.nock > 0 ? '화살 메기는 중' : '시위를 더 당겨라';
+  ctx.fillText(label, V.w / 2, y - H.chargeLabelGap);
 }
 
 function drawTigerEnter(ctx, S) {
@@ -562,18 +627,19 @@ function drawTitleOverlay(ctx) {
   if (touchActive()) {
     drawTouchControls(ctx);
   } else {
-    drawControl(ctx, 'W', '점프', O.controlLeftX, O.controlY);
-    drawControl(ctx, 'S', '수그리기', O.controlLeftX, O.controlY + O.controlGapY);
-    drawControl(ctx, 'A / D', '거리 조절', O.controlLeftX, O.controlY + O.controlGapY * 2);
+    drawControl(ctx, 'Space/W/↑', '점프', O.controlLeftX, O.controlY);
+    drawControl(ctx, 'S / ↓', '수그리기', O.controlLeftX, O.controlY + O.controlGapY);
+    drawControl(ctx, 'A/← · D/→', '뒤 / 앞', O.controlLeftX, O.controlY + O.controlGapY * 2);
     drawControl(ctx, '마우스', '조준', O.controlRightX, O.controlY);
     drawControl(ctx, '좌클릭', '홀드 → 놓기 발사', O.controlRightX, O.controlY + O.controlGapY);
-    drawControl(ctx, 'Space', '시작', O.controlRightX, O.controlY + O.controlGapY * 2);
+    drawControl(ctx, 'Space/Enter', '시작', O.controlRightX, O.controlY + O.controlGapY * 2);
   }
   ctx.fillStyle = C.ink;
   ctx.fillRect(O.actionX, O.actionY, O.actionW, O.actionH);
   ctx.fillStyle = C.paper;
   setFont(ctx, O.fontAction, O.tracking);
-  ctx.fillText(touchActive() ? '탭 — 강무 시작' : 'Space — 강무 시작', V.w / 2, O.actionTextY);
+  ctx.fillText(touchActive() ? '탭 — 강무 시작' : 'Space / Enter / 좌클릭 — 강무 시작',
+    V.w / 2, O.actionTextY);
   ctx.restore();
 }
 
@@ -607,11 +673,16 @@ function drawGameOverOverlay(ctx, S) {
   ctx.fillText(S.isNewBest ? '신기록!' : '최고 기록', V.w / 2, O.bestLabelY);
   setFont(ctx, O.fontBest, O.tracking);
   ctx.fillText(String(S.bestScore), V.w / 2, O.bestScoreY);
+  setFont(ctx, O.fontOverLabel, O.tracking);
+  ctx.fillText(touchActive()
+    ? '좌하단 뒤·앞 · 우하단 점프·수그리기 · 가운데 홀드 활'
+    : '점프 Space/W/↑ · 수그림 S/↓ · 이동 A/D/←/→ · 활 좌클릭',
+    V.w / 2, O.overControlsY);
   ctx.fillStyle = C.ink;
   ctx.fillRect(O.retryX, O.retryY, O.retryW, O.retryH);
   ctx.fillStyle = C.paper;
   setFont(ctx, O.fontAction, O.tracking);
-  ctx.fillText(touchActive() ? '화면 탭 — 다시 도전' : 'Space — 다시 도전',
+  ctx.fillText(touchActive() ? '화면 탭 — 다시 도전' : 'Space / Enter / 좌클릭 — 다시 도전',
     V.w / 2, O.retryTextY);
   ctx.restore();
 }
@@ -645,6 +716,8 @@ export function render(ctx, S) {
   if (S.aiming) drawAimPreview(ctx, S);
   drawArrows(ctx, S);
   drawTargetBursts(ctx, S);
+  drawForeground(ctx, S);
+  drawSpeedLines(ctx, S);
   ctx.restore();
   drawTouchPads(ctx);
   drawTigerEnter(ctx, S);
